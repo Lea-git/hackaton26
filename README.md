@@ -149,6 +149,74 @@ Les 20 entreprises de `companies_pool.json` sont des entreprises françaises ré
 
 ---
 
+## Vérification SIRET via l'API gouvernementale
+
+En production (et pour la démo live), la plateforme peut vérifier les SIRET extraits par l'OCR en temps réel via l'API gratuite de l'annuaire des entreprises :
+
+```
+GET https://recherche-entreprises.api.gouv.fr/search?q={siret_ou_nom}
+```
+
+> **Aucune clé API requise**, l'accès est public et gratuit.
+
+### Exemple Python
+
+```python
+import requests
+
+def verifier_siret(siret):
+    url = f"https://recherche-entreprises.api.gouv.fr/search?q={siret}"
+    response = requests.get(url)
+    data = response.json()
+
+    if data["total_results"] == 0:
+        return {"valide": False, "raison": "SIRET introuvable"}
+
+    entreprise = data["results"][0]
+    return {
+        "valide": True,
+        "nom": entreprise["nom_complet"],
+        "siret": siret,
+        "adresse": entreprise.get("siege", {}).get("adresse", ""),
+        "activite": entreprise.get("activite_principale", "")
+    }
+
+# SIRET réel → valide
+verifier_siret("52935972100014")
+# → {"valide": True, "nom": "JLB LOGICIELS & SERVICES", ...}
+
+# SIRET falsifié (SCN-3) → introuvable
+verifier_siret("96256706492763")
+# → {"valide": False, "raison": "SIRET introuvable"}
+```
+
+### Flux de vérification dans la pipeline
+
+```
+Document uploadé
+    ↓
+OCR extrait :  SIRET "96256706492763"  +  Entreprise "JLB LOGICIELS"
+    ↓
+Requête API :  GET recherche-entreprises.api.gouv.fr/search?q=JLB+LOGICIELS
+    ↓
+API répond  :  le vrai SIRET est 52935972100014
+    ↓
+Comparaison :  96256706492763 ≠ 52935972100014
+    ↓
+→ ALERTE : "SIRET incohérent détecté !"
+```
+
+### Stratégie recommandée (offline + online)
+
+| Mode | Source | Usage |
+|---|---|---|
+| **Offline** | `companies_pool.json` (20 entreprises) | Développement, tests unitaires, démo sans internet |
+| **Online** | API `recherche-entreprises.api.gouv.fr` | Démo live, production, couvre toutes les entreprises françaises |
+
+L'Étudiant 5 peut combiner les deux : vérifier d'abord dans `companies_pool.json` (instantané), puis appeler l'API en fallback si l'entreprise n'est pas dans le pool. Cela garantit que la démo fonctionne même sans connexion internet.
+
+---
+
 ## Métriques d'évaluation attendues
 
 ### OCR (Étudiant 2)
