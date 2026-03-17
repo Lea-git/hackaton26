@@ -1,0 +1,42 @@
+[
+  {
+    "document_type": "facture",
+    "siret": "55210055400013",
+    "tva": "FR45552100554",
+    "date": "2024-02-14",
+    "montant_ht": 1037,
+    "montant_ttc": 1245
+  },
+  {
+    "document_type": "facture",
+    "siret": "80345678200021",
+    "tva": "FR90803456782",
+    "date": "2024-01-30",
+    "montant_ht": 580,
+    "montant_ttc": 696
+  },
+  {
+    "document_type": "facture",
+    "siret": "42199833400045",
+    "tva": "FR32421998334",
+    "date": "2024-03-05",
+    "montant_ht": 2490,
+    "montant_ttc": 2988
+  },
+  {
+    "document_type": "facture",
+    "siret": "91233455600017",
+    "tva": "FR87912334556",
+    "date": "2024-02-01",
+    "montant_ht": 150,
+    "montant_ttc": 180
+  },
+  {
+    "document_type": "facture",
+    "siret": "50122399800032",
+    "tva": "FR21501223998",
+    "date": "2024-03-12",
+    "montant_ht": 987,
+    "montant_ttc": 1184
+  }
+]
