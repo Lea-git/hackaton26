@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Dataset Hackathon 2026 — Étudiant 1
 
 Dataset synthétique de documents administratifs français destiné à entraîner et évaluer la pipeline OCR / classification / détection d'anomalies du projet hackathon.
