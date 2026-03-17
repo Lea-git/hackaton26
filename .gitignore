@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .claude/
 __pycache__/
 venv
@@ -5,3 +6,8 @@ venv
 output/raw_zone/
 *.pdf
 *.jpg
+=======
+__pycache__
+venv
+ml_dataset
+>>>>>>> e021ea6 (Feat: Création document_validator pour AirFlow)
