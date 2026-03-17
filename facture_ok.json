@@ -1,0 +1,7 @@
+{
+    "document_type": "facture",
+    "siret": "55208131700019",
+    "vendor_name": "EDF",
+    "montant_ht": 1000,
+    "montant_ttc": 1200
+}
