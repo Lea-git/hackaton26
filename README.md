@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dataset Hackathon 2026 — Étudiant 1
 
 Dataset synthétique de documents administratifs français destiné à entraîner et évaluer la pipeline OCR / classification / détection d'anomalies du projet hackathon.
@@ -238,3 +239,7 @@ L'Étudiant 5 peut combiner les deux : vérifier d'abord dans `companies_pool.js
 - Le script est **entièrement reproductible** : `random.seed(42)` garantit les mêmes documents à chaque exécution.
 - Pour augmenter le volume, modifier les paramètres `n=` dans la fonction `main()` de `generate_dataset.py`.
 - Pour ajouter des entreprises, enrichir `companies_pool.json` via l'[API SIRENE officielle](https://api.insee.fr/catalogue/site/themes/wso2/subthemes/insee/pages/item-info.jag?name=Sirene&version=V3&provider=insee).
+=======
+# hackaton26
+IPSSI hackaton 2026
+>>>>>>> e3d5ccab6779955bf330bfc1bb8cc8c760aaa018
