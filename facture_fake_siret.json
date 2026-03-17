@@ -1,7 +1,0 @@
-{
-    "document_type": "facture",
-    "siret": "123456789",
-    "vendor_name": "SOCIETE GENERALE",
-    "montant_ht": 1000,
-    "montant_ttc": 1200
-}
