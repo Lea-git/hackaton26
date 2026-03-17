@@ -1,0 +1,22 @@
+[
+  {"nom": "JLB LOGICIELS & SERVICES", "siret": "52935972100014", "adresse": "29 Boulevard Henri IV, 75004 Paris", "secteur": "Tech", "activite": "Édition de logiciels applicatifs"},
+  {"nom": "EIFFAGE CONSTRUCTION EQUIPEMENTS", "siret": "40329158600150", "adresse": "101 Boulevard Victor Hugo, 93400 Saint-Ouen-sur-Seine", "secteur": "BTP", "activite": "Construction de bâtiments résidentiels et non résidentiels"},
+  {"nom": "ARC INFORMATIQUE", "siret": "32069535600149", "adresse": "40 Avenue Pierre Lefaucheux, 92100 Boulogne-Billancourt", "secteur": "Tech", "activite": "Édition de logiciels système et réseau"},
+  {"nom": "SOCIETE NETTOYAGE INDUSTRIEL", "siret": "34282187300011", "adresse": "2 Rue Louis Pradel, 69290 Saint-Genis-les-Ollières", "secteur": "Service", "activite": "Nettoyage courant des bâtiments"},
+  {"nom": "PROVENCE RENOVATION", "siret": "34922126700017", "adresse": "La Roumiguière, 13360 Roquevaire", "secteur": "BTP", "activite": "Travaux de rénovation générale"},
+  {"nom": "EURO-INFORMATION PRODUCTION", "siret": "32219010900015", "adresse": "4 Rue Frédéric-Guillaume Raiffeisen, 67000 Strasbourg", "secteur": "Tech", "activite": "Conseil en systèmes et logiciels informatiques"},
+  {"nom": "DOMINO TRANSPORTS ET LOGISTIQUE", "siret": "50104831800049", "adresse": "31 Rue Mazenod, 69003 Lyon", "secteur": "Service", "activite": "Activités des agences de travail temporaire"},
+  {"nom": "CONSTRUCTION BOIS ECOLOGIQUE", "siret": "30017129500037", "adresse": "9 Rue des Frênes, 44460 Saint-Nicolas-de-Redon", "secteur": "BTP", "activite": "Menuiserie bois et matières plastiques"},
+  {"nom": "BIG DATA & ANALYTICS", "siret": "88201338600033", "adresse": "36 Rue Ledru-Rollin, 92260 Fontenay-aux-Roses", "secteur": "Tech", "activite": "Conseil en systèmes et logiciels informatiques"},
+  {"nom": "AIDE MERES-FAMILLES-PERSONNES A DOMICILE", "siret": "77695143600018", "adresse": "3 Rue de Rennes, 31000 Toulouse", "secteur": "Service", "activite": "Action sociale sans hébergement"},
+  {"nom": "BS MACONNERIE", "siret": "88927550900020", "adresse": "1 Allée Constance de Bretagne, 35410 Châteaugiron", "secteur": "BTP", "activite": "Travaux de maçonnerie générale"},
+  {"nom": "PERMIS INFORMATIQUE", "siret": "33327577400045", "adresse": "50 Rue de Paradis, 75010 Paris", "secteur": "Tech", "activite": "Conseil en systèmes et logiciels informatiques"},
+  {"nom": "PRISMA CONSULTING SECURITE GARDIENNAGE", "siret": "74983758900011", "adresse": "92 Boulevard Président Wilson, 06600 Antibes", "secteur": "Service", "activite": "Activités de sécurité privée"},
+  {"nom": "NGE ROUTES", "siret": "67682013700278", "adresse": "Parc d'Activités La Laurade, 13103 Saint-Étienne-du-Grès", "secteur": "BTP", "activite": "Construction de routes et autoroutes"},
+  {"nom": "C.RAPINE DATA & ANALYTICS", "siret": "10145136700011", "adresse": "3 Rue des Bateliers, 92110 Clichy", "secteur": "Tech", "activite": "Conseil en systèmes et logiciels informatiques"},
+  {"nom": "AGENCE CONSEIL EN RESSOURCES HUMAINES", "siret": "50040897600016", "adresse": "1 Rue de Palerme, 67000 Strasbourg", "secteur": "Service", "activite": "Formation continue d'adultes"},
+  {"nom": "BRICOUT ELECTRICITE", "siret": "90193220200012", "adresse": "2 bis Rue du Château, 21700 Villers-la-Faye", "secteur": "BTP", "activite": "Travaux d'installation électrique"},
+  {"nom": "SEBASTIEN BATEZAT - APPLICATIONS WEB/MOBILE", "siret": "94820732900012", "adresse": "10 Rue de la Gare, 44130 Bouvron", "secteur": "Tech", "activite": "Développement d'applications mobiles"},
+  {"nom": "NEWREST RESTAURATION", "siret": "35144208206081", "adresse": "8 Allée Henry Potez, 31700 Blagnac", "secteur": "Service", "activite": "Restauration collective sous contrat"},
+  {"nom": "JB CHARPENTE COUVERTURE", "siret": "53472797900013", "adresse": "Chalet Le Pati, 4150 Route de Cordon, 74700 Cordon", "secteur": "BTP", "activite": "Travaux de charpente"}
+]
