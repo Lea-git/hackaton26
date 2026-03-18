@@ -3,6 +3,14 @@ from PIL import Image
 from transformers import DonutProcessor, VisionEncoderDecoderModel
 
 
+FIELD_ORDER = [
+    "emetteur", "valideur", "entreprise", "siret", "iban", "bic",
+    "client", "dirigeant", "capital_social", "date_delivrance",
+    "date_immatriculation", "date_emission", "date_expiration",
+    "total_ht", "tva", "total_ttc",
+]
+
+
 class DocumentExtractor:
     def __init__(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,4 +54,5 @@ class DocumentExtractor:
         except Exception:
             parsed = {}
 
-        return parsed
+        return {field: parsed.get(field, "") for field in FIELD_ORDER}
+    
