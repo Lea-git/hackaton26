@@ -1,3 +1,4 @@
+import json
 import tempfile
 from pathlib import Path
 from PIL import Image
@@ -19,7 +20,7 @@ def load_as_image(local_path: str) -> Image.Image:
     else:
         return Image.open(path).convert("RGB")
 
-def run_extraction_pipeline(raw_path: str) -> dict:
+def run_extraction_pipeline(raw_path):
     client = DataLakeClient()
     extractor = DocumentExtractor(MODEL_PATH)
     clean_path = str(Path(raw_path).with_suffix(".json"))
@@ -29,5 +30,5 @@ def run_extraction_pipeline(raw_path: str) -> dict:
         image = load_as_image(tmp.name)
         fields = extractor.extract(image)
 
-    client.upload_clean(clean_path, fields)
+    client.upload_clean(clean_path, json.dumps(fields, ensure_ascii=False, indent=2))
     return fields
