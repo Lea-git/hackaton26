@@ -32,6 +32,7 @@ extraction/
 ├── prepare_train_data.py   # Convertit les PDFs/images bruts → donut_dataset/
 ├── train.py                # Fine-tune le modèle Donut
 ├── extractor.py            # Module d'extraction réutilisable
+├── pipeline.py             # Orchestre téléchargement, extraction et upload
 ├── inference.py            # Script d'inférence pour des tests rapide
 ├── model/                  # Modèle sauvegardé après entraînement
 output/
@@ -56,7 +57,16 @@ python ./extraction/prepare_train_data.py
 python ./extraction/train.py
 ```
 
-### 3. Extraire les champs d'un document
+### 3. Pipeline complet (datalake → extraction → datalake)
+Télécharge un document depuis la zone brute, extrait les champs et pousse le résultat en zone clean.
+```python
+from extraction.pipeline import run_extraction_pipeline
+ 
+fields = run_extraction_pipeline("2024/factures/facture_001.pdf")
+# résultat aussi uploadé dans "2024/factures/facture_001.json"
+```
+
+### 4. Extraction standalone
 ```python
 from extractor import DocumentExtractor
 from PIL import Image
