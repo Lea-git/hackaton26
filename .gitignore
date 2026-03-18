@@ -1,6 +1,11 @@
+.venv/
 .claude/
 __pycache__/
+
+donut_dataset/
+extraction/model/
 
 output/raw_zone/
 *.pdf
 *.jpg
+*.jpeg
