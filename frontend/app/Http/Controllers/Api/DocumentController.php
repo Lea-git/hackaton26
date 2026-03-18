@@ -11,17 +11,48 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
-    // Liste tous les documents
-    public function index()
+    // Liste tous les documents (avec filtre optionnel par nom_fichier)
+    public function index(Request $request)
     {
-        $documents = Document::with('extraction', 'fournisseur')
-                            ->latest()
-                            ->paginate(20);
-        
+        $query = Document::with('extraction', 'fournisseur');
+
+        if ($request->has('nom_fichier')) {
+            $query->where('nom_fichier_original', $request->nom_fichier);
+        }
+
+        $documents = $query->latest()->paginate(20);
+
         return response()->json([
             'success' => true,
             'data' => $documents
         ]);
+    }
+
+    // Créer un document (depuis Airflow, sans upload fichier)
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nom_fichier_original' => 'required|string|max:255',
+            'chemin_stockage' => 'required|string|max:500',
+            'type_document' => 'required|string',
+            'mime_type' => 'nullable|string|max:100',
+            'taille_fichier' => 'nullable|integer',
+        ]);
+
+        $document = Document::create([
+            'nom_fichier_original' => $request->nom_fichier_original,
+            'chemin_stockage' => $request->chemin_stockage,
+            'type_document' => $request->type_document,
+            'statut_ocr' => 'en_attente',
+            'mime_type' => $request->mime_type,
+            'taille_fichier' => $request->taille_fichier,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document enregistré',
+            'data' => $document
+        ], 201);
     }
 
     // Détail d'un document

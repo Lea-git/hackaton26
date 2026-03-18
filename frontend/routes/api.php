@@ -14,6 +14,7 @@ Route::post('/upload/progress', [UploadController::class, 'uploadProgress']);
 
 // Documents
 Route::get('/documents', [DocumentController::class, 'index']);
+Route::post('/documents', [DocumentController::class, 'store']);
 Route::get('/documents/{id}', [DocumentController::class, 'show']);
 Route::patch('/documents/{id}/type', [DocumentController::class, 'updateType']);
 Route::get('/documents/{id}/download', [DocumentController::class, 'download']);

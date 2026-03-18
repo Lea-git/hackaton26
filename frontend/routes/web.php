@@ -7,6 +7,7 @@ use App\Models\Document;
 use Illuminate\Support\Facades\Storage;  
 use App\Services\DataLakeClient;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 // Page d'accueil
 Route::get('/', function () {
@@ -46,7 +47,15 @@ Route::post('/upload', function (Request $request) {
         Log::error('Erreur envoi Data Lake: ' . $e->getMessage());
     }
 
-    return redirect('/commercial/dashboard')->with('success', 'Fichier uploadé avec succès (en attente de traitement OCR)');
+    // 4. Déclencher le pipeline Airflow
+    try {
+        Http::timeout(5)->post('http://backend:8000/trigger-pipeline');
+        Log::info('Pipeline Airflow déclenché après upload');
+    } catch (\Exception $e) {
+        Log::warning('Impossible de déclencher le pipeline: ' . $e->getMessage());
+    }
+
+    return redirect('/commercial/dashboard')->with('success', 'Fichier uploadé avec succès (pipeline de traitement déclenché)');
 })->name('upload');
 
 // Routes commercial
