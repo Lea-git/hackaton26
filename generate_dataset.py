@@ -28,9 +28,34 @@ random.seed(42)
 Faker.seed(42)
 np.random.seed(42)
 
+# 🔥 AJOUT
+from datalake import DataLakeClient
+from datetime import datetime
+
+# 🔥 AJOUT
+datalake = DataLakeClient()
+
+# 🔥 AJOUT
+def upload_raw_only(local_path, filename, scenario):
+    import os
+
+    if not os.path.exists(local_path):
+        print(f"[ERREUR] Fichier introuvable : {local_path}")
+        return
+
+    try:
+        date_path = datetime.now().strftime("%Y/%m/%d")
+        object_name = f"{scenario}/{date_path}/{filename}"
+
+        datalake.upload_raw(object_name, str(local_path))
+    except Exception as e:
+        print(f"[ERREUR UPLOAD RAW] {filename} : {e}")
 # --- Config ---
 BASE_DIR = Path(__file__).parent
-OUTPUT_DIR = BASE_DIR / "output" / "raw_zone"
+#OUTPUT_DIR = BASE_DIR / "output" / "raw_zone"
+#OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# 🔥 AJOUT
+OUTPUT_DIR = Path("output/raw_zone")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TEAM_MEMBERS = [
@@ -804,6 +829,8 @@ def generate_scn1_perfect(index):
         num = gen_invoice_number()
         filename = f"SCN1_facture_{index:03d}.pdf"
         filepath = OUTPUT_DIR / filename
+        # 🔥 AJOUT
+        upload_raw_only(filepath, filename, "SCN-9")
         total_ht, tva, ttc, ttc_disp = draw_invoice_pdf(
             filepath, company, client, items, num,
             format_date(date), emetteur, valideur, company["siret"]
@@ -829,6 +856,8 @@ def generate_scn1_perfect(index):
         num = gen_devis_number()
         filename = f"SCN1_devis_{index:03d}.pdf"
         filepath = OUTPUT_DIR / filename
+        # 🔥 AJOUT
+        upload_raw_only(filepath, filename, "SCN-9")
         total_ht, tva, ttc = draw_devis_pdf(
             filepath, company, client, items, num,
             format_date(date), emetteur, company["siret"]
@@ -930,6 +959,8 @@ def generate_scn2_dirty(index):
 
     filename = f"SCN2_scan_{index:03d}.jpg"
     jpg_path = OUTPUT_DIR / filename
+    # 🔥 AJOUT
+    upload_raw_only(jpg_path, filename, "SCN-9")
     apply_dirty_scan(temp_pdf, jpg_path)
     temp_pdf.unlink(missing_ok=True)
 
@@ -954,6 +985,8 @@ def generate_scn3_siret_mismatch(index):
 
     filename = f"SCN3_siret_mismatch_{index:03d}.pdf"
     filepath = OUTPUT_DIR / filename
+    # 🔥 AJOUT
+    upload_raw_only(filepath, filename, "SCN-9")
     total_ht, tva, ttc, ttc_disp = draw_invoice_pdf(
         filepath, company, client, items, num,
         format_date(date), emetteur, valideur, fake_siret
@@ -991,6 +1024,8 @@ def generate_scn4_urssaf_expired(index):
 
     filename = f"SCN4_urssaf_expired_{index:03d}.pdf"
     filepath = OUTPUT_DIR / filename
+    # 🔥 AJOUT
+    upload_raw_only(filepath, filename, "SCN-9")
     draw_urssaf_pdf(filepath, company, emission, expiration, emetteur, company["siret"])
 
     ground_truth.append({
@@ -1030,6 +1065,8 @@ def generate_scn5_vat_error(index):
 
     filename = f"SCN5_vat_error_{index:03d}.pdf"
     filepath = OUTPUT_DIR / filename
+    # 🔥 AJOUT
+    upload_raw_only(filepath, filename, "SCN-9")
     total_ht, tva, ttc_correct, ttc_displayed = draw_invoice_pdf(
         filepath, company, client, items, num,
         format_date(date), emetteur, valideur, company["siret"],
@@ -1132,6 +1169,8 @@ def generate_scn6_smartphone(index):
 
     filename = f"SCN6_smartphone_{index:03d}.jpg"
     jpg_path = OUTPUT_DIR / filename
+    # 🔥 AJOUT
+    upload_raw_only(jpg_path, filename, "SCN-9")
     apply_smartphone_scan(temp_pdf, jpg_path)
     temp_pdf.unlink(missing_ok=True)
 
@@ -1207,6 +1246,9 @@ def generate_scn10_partial(index):
 
     filename = f"SCN10_partial_{index:03d}.pdf"
     filepath = OUTPUT_DIR / filename
+    
+    # 🔥 AJOUT
+    upload_raw_only(filepath, filename, "SCN-9")
     hidden = apply_partial_occlusion(temp_pdf, filepath, zones)
     temp_pdf.unlink(missing_ok=True)
 
@@ -1298,6 +1340,10 @@ def generate_scn9_pixelized(index):
 
     filename = f"SCN9_pixelized_{index:03d}.jpg"
     jpg_path = OUTPUT_DIR / filename
+    # sauvegarde
+    image.save(jpg_path)
+    # 🔥 AJOUT
+    upload_raw_only(jpg_path, filename, "SCN-9")
     apply_heavy_degradation(temp_pdf, jpg_path)
     temp_pdf.unlink(missing_ok=True)
 
@@ -1342,6 +1388,8 @@ def generate_scn7_combined(index):
 
     filename = f"SCN7_combined_{index:03d}.jpg"
     jpg_path = OUTPUT_DIR / filename
+    # 🔥 AJOUT
+    upload_raw_only(jpg_path, filename, "SCN-9")
     if degrad_choice == "dirty_scan":
         apply_dirty_scan(temp_pdf, jpg_path)
     else:
