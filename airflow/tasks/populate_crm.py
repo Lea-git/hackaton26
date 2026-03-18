@@ -6,7 +6,7 @@ Crée/update Fournisseur, crée Extraction, met à jour le type document.
 import json
 import logging
 
-from airflow.tasks.laravel_client import LaravelAPIClient
+from docuhack_tasks.laravel_client import LaravelAPIClient
 
 logger = logging.getLogger(__name__)
 

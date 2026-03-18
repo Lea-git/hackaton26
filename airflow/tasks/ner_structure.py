@@ -7,7 +7,7 @@ import json
 import logging
 from minio import Minio
 
-from airflow.tasks.config import (
+from docuhack_tasks.config import (
     MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_SECURE,
     BUCKET_CURATED, SCENARIO_MAP,
 )
@@ -30,9 +30,9 @@ def _build_structured_json(gt_entry):
             anomalies.append("siret_mismatch")
 
     # Vérifier TVA (HT * 1.20 ≈ TTC)
-    total_ht = gt_entry.get("total_ht", 0)
-    total_ttc = gt_entry.get("total_ttc", 0)
-    tva = gt_entry.get("tva", 0)
+    total_ht = gt_entry.get("total_ht") or 0
+    total_ttc = gt_entry.get("total_ttc") or 0
+    tva = gt_entry.get("tva") or 0
     if total_ht > 0:
         expected_ttc = round(total_ht * 1.20, 2)
         if abs(expected_ttc - total_ttc) > 1.0:

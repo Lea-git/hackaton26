@@ -7,7 +7,7 @@ import json
 import logging
 from minio import Minio
 
-from airflow.tasks.config import (
+from docuhack_tasks.config import (
     MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_SECURE,
     BUCKET_CLEAN, GROUND_TRUTH_PATH,
 )
@@ -32,9 +32,9 @@ def _generate_ocr_text(gt_entry):
         f"SIRET: {gt_entry.get('siret_affiche', 'N/A')}",
         f"Client: {gt_entry.get('client', 'N/A')}",
         f"",
-        f"Montant HT: {gt_entry.get('total_ht', 0):.2f} EUR",
-        f"TVA: {gt_entry.get('tva', 0):.2f} EUR",
-        f"Montant TTC: {gt_entry.get('total_ttc', 0):.2f} EUR",
+        f"Montant HT: {(gt_entry.get('total_ht') or 0):.2f} EUR",
+        f"TVA: {(gt_entry.get('tva') or 0):.2f} EUR",
+        f"Montant TTC: {(gt_entry.get('total_ttc') or 0):.2f} EUR",
         f"",
         f"Valideur: {gt_entry.get('valideur', 'N/A')}",
         f"Valide: {'OUI' if gt_entry.get('is_valid') else 'NON'}",

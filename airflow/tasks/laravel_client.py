@@ -5,7 +5,7 @@ laravel_client.py — Client HTTP pour l'API Laravel DocuHack.
 import requests
 import logging
 
-from airflow.tasks.config import LARAVEL_API_URL
+from docuhack_tasks.config import LARAVEL_API_URL
 
 logger = logging.getLogger(__name__)
 

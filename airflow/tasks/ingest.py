@@ -6,11 +6,11 @@ import logging
 import os
 from minio import Minio
 
-from airflow.tasks.config import (
+from docuhack_tasks.config import (
     MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_SECURE,
     BUCKET_RAW, BUCKET_CLEAN, CONTENT_TYPES,
 )
-from airflow.tasks.laravel_client import LaravelAPIClient
+from docuhack_tasks.laravel_client import LaravelAPIClient
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def scan_raw_zone(**context):
 def ingest_documents(**context):
     """Enregistre les nouveaux fichiers dans la base MySQL via POST /api/documents."""
     ti = context["ti"]
-    new_files = ti.xcom_pull(task_ids="scan_raw_zone")
+    new_files = ti.xcom_pull(task_ids="scan_raw_zone", key="new_files")
 
     if not new_files:
         logger.info("[ingest] Aucun nouveau fichier à ingérer")

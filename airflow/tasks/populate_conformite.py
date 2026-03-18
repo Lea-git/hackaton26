@@ -5,7 +5,7 @@ Crée des alertes rouge/orange selon les résultats de validation.
 
 import logging
 
-from airflow.tasks.laravel_client import LaravelAPIClient
+from docuhack_tasks.laravel_client import LaravelAPIClient
 
 logger = logging.getLogger(__name__)
 

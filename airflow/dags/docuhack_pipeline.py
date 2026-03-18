@@ -15,12 +15,12 @@ from airflow.operators.python import PythonOperator, ShortCircuitOperator
 sys.path.insert(0, "/opt/airflow")
 sys.path.insert(0, "/opt/airflow/backend")
 
-from airflow.tasks.ingest import scan_raw_zone, ingest_documents
-from airflow.tasks.ocr_mock import mock_ocr
-from airflow.tasks.ner_structure import ner_structuration
-from airflow.tasks.validate import validate_documents
-from airflow.tasks.populate_crm import populate_crm
-from airflow.tasks.populate_conformite import populate_conformite
+from docuhack_tasks.ingest import scan_raw_zone, ingest_documents
+from docuhack_tasks.ocr_mock import mock_ocr
+from docuhack_tasks.ner_structure import ner_structuration
+from docuhack_tasks.validate import validate_documents
+from docuhack_tasks.populate_crm import populate_crm
+from docuhack_tasks.populate_conformite import populate_conformite
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +35,14 @@ def _on_success(context):
     logger.info(f"[SUCCESS] Tâche '{task_id}' terminée avec succès")
 
 
-def _scan_and_check(**context):
+def _check_new_files(**context):
     """ShortCircuit : retourne True si des fichiers sont à traiter."""
     new_files = scan_raw_zone(**context)
     if not new_files:
         logger.info("[scan] Aucun nouveau fichier, pipeline skip")
         return False
+    # Stocker la liste dans XCom sous la clé 'new_files'
+    context["ti"].xcom_push(key="new_files", value=new_files)
     return True
 
 
@@ -68,7 +70,7 @@ with DAG(
 
     scan_raw = ShortCircuitOperator(
         task_id="scan_raw_zone",
-        python_callable=_scan_and_check,
+        python_callable=_check_new_files,
         provide_context=True,
     )
 
