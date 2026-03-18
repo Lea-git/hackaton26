@@ -2,11 +2,20 @@ import argparse
 import json
 from pathlib import Path
 
-from document_validator import DocumentValidator
+try:
+    from .document_validator import DocumentValidator
+except ImportError:
+    from document_validator import DocumentValidator
+
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 def evaluate_ml_only(dataset_dir="ml_dataset", labels_file="labels_ml.json", report_path="ml_report.json"):
     dataset_path = Path(dataset_dir)
+    if not dataset_path.is_absolute():
+        dataset_path = BASE_DIR / dataset_path
+
     labels_path = dataset_path / labels_file
 
     if not labels_path.exists():
@@ -73,6 +82,9 @@ def evaluate_ml_only(dataset_dir="ml_dataset", labels_file="labels_ml.json", rep
     }
 
     report_file = Path(report_path)
+    if not report_file.is_absolute():
+        report_file = BASE_DIR / report_file
+
     report_file.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Report saved: {report_file}")
 

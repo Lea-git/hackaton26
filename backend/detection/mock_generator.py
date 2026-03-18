@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import Dict, List
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
+
 def create_test_json(file_path, siret, vendor, ht, ttc):
     data = {
         "document_type": "facture",
@@ -20,13 +23,17 @@ def create_test_json(file_path, siret, vendor, ht, ttc):
 
 
 def generate_baseline_files():
-    create_test_json("facture_ok.json", "44306184100047", "GOOGLE FRANCE", 1000, 1200)
-    create_test_json("facture_math_error.json", "44306184100047", "GOOGLE FRANCE", 1000, 5000)
+    create_test_json(BASE_DIR / "facture_ok.json", "44306184100047", "GOOGLE FRANCE", 1000, 1200)
+    create_test_json(BASE_DIR / "facture_math_error.json", "44306184100047", "GOOGLE FRANCE", 1000, 5000)
+    create_test_json(BASE_DIR / "facture_fake_siret.json", "12345678901234", "GOOGLE FRANCE", 1000, 1200)
 
 
 def generate_ml_dataset(output_dir="ml_dataset", normal_count=80, anomaly_count=40, difficulty="hard", seed=42):
     rng = random.Random(seed)
     output_path = Path(output_dir)
+    if not output_path.is_absolute():
+        output_path = BASE_DIR / output_path
+
     output_path.mkdir(parents=True, exist_ok=True)
 
     labels: List[Dict[str, object]] = []

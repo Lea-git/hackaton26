@@ -1,5 +1,6 @@
 import json
 import logging
+from pathlib import Path
 import sys
 import time
 from datetime import datetime, timezone
@@ -12,6 +13,9 @@ from thefuzz import fuzz
 
 
 logging.getLogger(__name__).addHandler(logging.NullHandler())
+
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 class DocumentValidator:
@@ -290,7 +294,11 @@ class DocumentValidator:
 
 def analyze_file(file_path: str, validator: Optional[DocumentValidator] = None) -> Dict[str, Any]:
     active_validator = validator or DocumentValidator()
-    with open(file_path, "r", encoding="utf-8") as file_handle:
+    target_path = Path(file_path)
+    if not target_path.is_absolute() and not target_path.exists():
+        target_path = BASE_DIR / target_path
+
+    with target_path.open("r", encoding="utf-8") as file_handle:
         payload = json.load(file_handle)
     return active_validator.analyze(payload)
 
@@ -302,7 +310,16 @@ if __name__ == "__main__":
     )
 
     validator = DocumentValidator()
-    targets = sys.argv[1:] or ["facture_ok.json", "facture_math_error.json", "facture_fake_siret.json"]
+    default_targets = ["facture_ok.json", "facture_math_error.json", "facture_fake_siret.json"]
+    targets = sys.argv[1:]
+    if not targets:
+        targets = [
+            target
+            for target in default_targets
+            if Path(target).exists() or (BASE_DIR / target).exists()
+        ]
+        if not targets:
+            targets = default_targets
 
     for file_path in targets:
         try:
