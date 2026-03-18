@@ -1,2 +1,5 @@
 fastapi
 uvicorn
+requests
+minio
+python-dotenv
