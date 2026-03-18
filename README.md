@@ -8,14 +8,21 @@ Dataset synthétique de documents administratifs français destiné à entraîne
 
 ```
 dataset-hackaton/
-├── generate_dataset.py       # Script principal de génération
-├── companies_pool.json       # Pool de 20 entreprises réelles (SIRET INSEE)
-├── README.md
-└── output/
-    ├── raw_zone/             # 170 documents générés (PDF + JPG)  ← Raw Zone du Data Lake
-    ├── ground_truth.json     # Vérité terrain complète (170 entrées)
-    ├── ground_truth_train.json  # 80% — entraînement (136 docs)
-    └── ground_truth_test.json   # 20% — évaluation (34 docs)
+├── Backend/
+│ ├── app.py
+│ ├── generate_dataset.py   # Script principal de génération
+│ ├── datalake.py           # Script pour MinIO / datalake
+│ ├── companies_pool.json   # Pool de 20 entreprises réelles (SIRET INSEE)
+│ ├── requirements.txt
+│ └── output/
+│ ├── raw_zone/ # 170 documents générés (PDF + JPG) ← Raw Zone du Data Lake
+│ ├── ground_truth.json        # Vérité terrain complète (170 entrées)
+│ ├── ground_truth_train.json  # 80% — entraînement (136 docs)
+│ └── ground_truth_test.json   # 20% — évaluation (34 docs)
+├── Frontend/
+│ ├── Dockerfile
+│ └── ... # Projet Laravel/Vue minimal
+└── docker-compose.yml
 ```
 
 ---
@@ -27,6 +34,43 @@ pip install faker reportlab pillow
 ```
 
 ---
+## Docker 
+
+Installer Docker Desktop
+Vérifier que Docker fonctionne
+ docker --version
+ docker composer version
+ Lancer l’application avec Docker
+
+Tout est conteneurisé : backend Python, frontend Laravel/Vue et MinIO pour le datalake.
+
+1️⃣ Build et démarrage des conteneurs
+
+Depuis la racine du projet :
+
+docker compose up --build
+
+Backend : exposé sur http://localhost:8000
+
+Frontend : exposé sur http://localhost:8080
+
+MinIO (datalake) : console web sur http://localhost:9001
+, API S3 sur http://localhost:9000
+
+Credentials :
+
+User : admin
+
+Password : password123
+
+2️⃣ Accéder au conteneur backend pour générer le dataset
+docker compose exec backend python generate_dataset.py
+
+Les fichiers seront créés dans /app/output/ et persistés sur ton PC grâce au volume Docker.
+
+3️⃣ Accéder au datalake MinIO
+docker compose exec minio mc alias set local http://localhost:9000 admin password123
+docker compose exec backend python datalake.py   # Pour uploader les fichiers dans MinIO
 
 ## Générer le dataset
 
@@ -107,6 +151,12 @@ Chaque entrée de `ground_truth.json` contient :
   "split": "train"                     ← train / test
 }
 ```
+### Notes Docker
+
+
+Tous les fichiers Python et JSON sont dans Backend/.
+
+Volumes Docker garantissent que les fichiers générés restent sur ton PC même après arrêt des conteneurs.
 
 ### Règle de vérification SIRET
 
@@ -232,6 +282,16 @@ L'Étudiant 5 peut combiner les deux : vérifier d'abord dans `companies_pool.js
 - Détail par type d'erreur : `siret_mismatch`, `urssaf_expired`, `vat_calculation_error`
 
 ---
+### Commandes Clés
+
+# Build et lancer les conteneurs
+docker compose up --build
+
+# Générer dataset
+docker compose exec backend python generate_dataset.py
+
+# Uploader vers MinIO
+docker compose exec backend python datalake.py
 
 ## Notes
 

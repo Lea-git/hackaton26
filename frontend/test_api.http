@@ -1,0 +1,33 @@
+### Upload de documents
+POST http://127.0.0.1:8000/api/upload
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="documents[]"; filename="facture.pdf"
+Content-Type: application/pdf
+
+< ./chemin/vers/facture.pdf
+--WebAppBoundary--
+
+### Liste des documents
+GET http://127.0.0.1:8000/api/documents
+
+### Créer une alerte
+POST http://127.0.0.1:8000/api/alertes
+Content-Type: application/json
+
+{
+    "type": "siren_mismatch",
+    "niveau": "rouge",
+    "message": "SIREN différent entre facture #1 et attestation #2",
+    "documents_concerenes": [1, 2],
+    "details": {"sirens": ["123456789", "987654321"]}
+}
+
+### Vérifier des documents
+POST http://127.0.0.1:8000/api/verifier/documents
+Content-Type: application/json
+
+{
+    "document_ids": [1, 2, 3]
+}

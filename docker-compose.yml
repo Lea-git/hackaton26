@@ -1,59 +1,95 @@
-version: "3.9"
-
 services:
 
-  # ─────────────────────────────────────────
-  #  MinIO — Object Storage S3-compatible
-  # ─────────────────────────────────────────
+  # ─────────────────────────────
+  # Backend Python
+  # ─────────────────────────────
+  backend:
+    build: ./backend
+    container_name: backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/output:/app/output
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: admin1234
+      MINIO_SECURE: "false"
+    depends_on:
+      - minio
+
+  # ─────────────────────────────
+  # Frontend Laravel / Vue
+  # ─────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/var/www/html
+    depends_on:
+      - backend
+      - db
+
+  # ─────────────────────────────
+  # Base de données MySQL
+  # ─────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: mysql-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────
+  # MinIO (Data Lake)
+  # ─────────────────────────────
   minio:
     image: minio/minio:latest
     container_name: minio-datalake
     ports:
-      - "9000:9000"   # API S3
-      - "9001:9001"   # Console Web UI  →  http://localhost:9001
+      - "9000:9000"
+      - "9001:9001"
     environment:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: admin1234
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
 
-  # ─────────────────────────────────────────
-  #  mc (MinIO Client) — Initialisation
-  #  Crée les 3 buckets au démarrage
-  # ─────────────────────────────────────────
+  # ─────────────────────────────
+  # Initialisation MinIO (buckets)
+  # ─────────────────────────────
   minio-init:
     image: minio/mc:latest
     container_name: minio-init
     depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
+      - minio
+    entrypoint: 
       /bin/sh -c "
-        echo '⏳ Connexion à MinIO...' &&
+        sleep 5 &&
         mc alias set local http://minio:9000 admin admin1234 &&
-
-        echo '📦 Création des buckets...' &&
         mc mb --ignore-existing local/raw-documents &&
         mc mb --ignore-existing local/clean-documents &&
         mc mb --ignore-existing local/curated-documents &&
-
-        echo '🔒 Application des politiques...' &&
-        mc anonymous set none local/raw-documents &&
-        mc anonymous set none local/clean-documents &&
-        mc anonymous set none local/curated-documents &&
-
-        echo '✅ Data Lake initialisé avec succès !' &&
-        mc ls local
+        echo '✅ Buckets créés'
       "
     restart: on-failure
 
 volumes:
   minio_data:
-    driver: local
+  db_data:
