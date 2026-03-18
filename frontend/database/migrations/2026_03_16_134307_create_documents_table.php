@@ -21,7 +21,7 @@ return new class extends Migration
         $table->json('donnees_brutes_ocr')->nullable(); // Tout le texte extrait par OCR
         $table->string('mime_type');              // application/pdf, image/jpeg
         $table->integer('taille_fichier');        // en octets
-        $table->foreignId('extraction_id')->nullable()->constrained();
+        $table->unsignedBigInteger('extraction_id')->nullable();
         $table->foreignId('fournisseur_id')->nullable()->constrained();
         $table->timestamps();
     });
