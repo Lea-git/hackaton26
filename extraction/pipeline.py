@@ -8,7 +8,7 @@ from extraction.prepare_train_data import POPPLER_PATH
 from datalake import DataLakeClient
 
 
-MODEL_PATH = "./donut_invoice_model"
+MODEL_PATH = "./extraction/model"
 
 
 def load_as_image(local_path: str) -> Image.Image:
