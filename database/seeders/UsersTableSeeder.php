@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class UsersTableSeeder extends Seeder
@@ -13,26 +12,19 @@ class UsersTableSeeder extends Seeder
     // Dans database/seeders/UsersTableSeeder.php
 public function run()
 {
-    // Admin
-    \App\Models\User::create([
-        'name' => 'Admin',
-        'email' => 'admin@docuhack.com',
-        'password' => bcrypt('admin123'),
-        'role' => 'admin'
-    ]);
     
-    // Commercial
+    // role Commercial pour le user
     \App\Models\User::create([
         'name' => 'Commercial',
-        'email' => 'commercial@docuhack.com',
+        'email' => 'user@docuhack.com',
         'password' => bcrypt('password123'),
         'role' => 'commercial'
     ]);
     
-    // Conformité
+    // Role Conformité pour le Admin
     \App\Models\User::create([
         'name' => 'Conformite',
-        'email' => 'conformite@docuhack.com',
+        'email' => 'admin@docuhack.com',
         'password' => bcrypt('password123'),
         'role' => 'conformite'
     ]);

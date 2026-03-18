@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Storage;
 use App\Services\DataLakeClient;
 use Illuminate\Support\Facades\Log;
 
+// Route de secours pour le middleware auth
+Route::get('/login', function () {
+    return redirect('/user/login');
+})->name('login');
+
 // Page d'accueil
 Route::get('/', function () {
     return view('welcome');
@@ -46,14 +51,14 @@ Route::post('/upload', function (Request $request) {
         Log::error('Erreur envoi Data Lake: ' . $e->getMessage());
     }
 
-    return redirect('/commercial/dashboard')->with('success', 'Fichier uploadé avec succès (en attente de traitement OCR)');
+    return redirect('/user/dashboard')->with('success', 'Fichier uploadé avec succès (en attente de traitement OCR)');
 })->name('upload');
 
-// Routes commercial
-Route::prefix('commercial')->group(function () {
+// Routes user
+Route::prefix('user')->group(function () {
     Route::get('/login', function () {
-        return view('commercial.login', ['espace' => 'Commercial']);
-    })->name('commercial.login');
+        return view('user.login', ['espace' => 'Utilisateur']);
+    })->name('user.login');
     
     Route::post('/login', function (Illuminate\Http\Request $request) {
         $credentials = $request->validate([
@@ -65,7 +70,7 @@ Route::prefix('commercial')->group(function () {
             $request->session()->regenerate();
             
             if (Auth::user()->role === 'commercial') {
-                return redirect('/commercial/dashboard');
+                return redirect('/user/dashboard');
             }
             return redirect('/');
         }
@@ -75,7 +80,7 @@ Route::prefix('commercial')->group(function () {
         ]);
     });
     
-    // DASHBOARD COMMERCIAL DYNAMIQUE
+    // DASHBOARD USER
     Route::get('/dashboard', function () {
         // 1. Documents locaux
         $documentsLocaux = Document::latest()->take(10)->get();
@@ -107,7 +112,7 @@ Route::prefix('commercial')->group(function () {
         $enAttente = Document::where('statut_ocr', 'en_attente')->count();
         $traites = Document::where('statut_ocr', 'traite')->count();
         
-        return view('commercial.dashboard', [
+        return view('user.dashboard', [
             'documentsLocaux' => $documentsLocaux,
             'documentsCurated' => $documentsCurated,
             'documentsOCR' => $documentsOCR,
@@ -116,14 +121,14 @@ Route::prefix('commercial')->group(function () {
             'enAttente' => $enAttente,
             'traites' => $traites
         ]);
-    })->name('commercial.dashboard');
+    })->name('user.dashboard');
 });
 
-// Routes conformité
-Route::prefix('conformite')->group(function () {
+// Routes admin
+Route::prefix('admin')->group(function () {
     Route::get('/login', function () {
-        return view('conformite.login', ['espace' => 'Conformité']);
-    })->name('conformite.login');
+        return view('admin.login', ['espace' => 'Administrateur']);
+    })->name('admin.login');
     
     Route::post('/login', function (Illuminate\Http\Request $request) {
         $credentials = $request->validate([
@@ -135,7 +140,7 @@ Route::prefix('conformite')->group(function () {
             $request->session()->regenerate();
             
             if (Auth::user()->role === 'conformite') {
-                return redirect('/conformite/dashboard');
+                return redirect('/admin/dashboard');
             }
             return redirect('/');
         }
@@ -145,7 +150,7 @@ Route::prefix('conformite')->group(function () {
         ]);
     });
     
-    // DASHBOARD CONFORMITÉ DYNAMIQUE (adapté pour l'étudiant 5)
+    // DASHBOARD ADMIN
     Route::get('/dashboard', function () {
         // Récupère les documents depuis le Data Lake (curated zone)
         $dataLakeClient = new DataLakeClient();
@@ -161,7 +166,6 @@ Route::prefix('conformite')->group(function () {
         // Transforme les données de l'étudiant 5 au format attendu par le dashboard
         $documentsAdaptes = [];
         foreach ($documentsCurated as $doc) {
-            // Adapte le format selon la structure de l'étudiant 5
             $documentsAdaptes[] = [
                 'document_id' => $doc['document_id'] ?? ($doc['metadata']['document_type'] ?? 'N/A'),
                 'document_type' => $doc['document_type'] ?? ($doc['metadata']['document_type'] ?? 'N/A'),
@@ -192,14 +196,14 @@ Route::prefix('conformite')->group(function () {
             }
         }
         
-        return view('conformite.dashboard', [
+        return view('admin.dashboard', [
             'documentsCurated' => $documentsAdaptes,
             'totalDocs' => $totalDocs,
             'conformes' => $conformes,
             'alertesRouges' => $alertesRouges,
             'alertesOranges' => $alertesOranges
         ]);
-    })->name('conformite.dashboard');
+    })->name('admin.dashboard');
 });
 
 // Logout

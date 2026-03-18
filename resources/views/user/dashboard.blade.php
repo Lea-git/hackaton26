@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Commercial - DocuHack</title>
+    <title>Interface Utilisateur</title>
     @vite(['resources/css/app.css'])
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -284,10 +284,10 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="logo">📊 DocuHack CRM</div>
+        <div class="logo">📊Gestion des Factures</div>
         <div class="user-info">
-            <span>👤 commercial@docuhack.com</span>
-            <a href="/commercial/login" class="logout">Déconnexion</a>
+            <span>👤 user@docuhack.com</span>
+            <a href="/user/login" class="logout">Déconnexion</a>
         </div>
     </nav>
 
@@ -333,6 +333,53 @@
             </div>
         </div>
 
+         <!-- Documents récents -->
+        <div class="section-card section-recent">
+            <div class="section-title">
+                <span class="section-title-icon">📄</span>
+                Documents récents
+            </div>
+            <div class="table-wrapper">
+                <table>
+                   <thead class="bg-gray-50">
+    <tr>
+        <th class="px-6 py-3 text-left">Nom du fichier</th>
+        <th class="px-6 py-3 text-left">Type</th>
+        <th class="px-6 py-3 text-left">Date d'upload</th>
+        <th class="px-6 py-3 text-left">Statut OCR</th>
+        <th class="px-6 py-3 text-left">Visualiser</th> 
+    </tr>
+</thead>
+<tbody>
+    @forelse($documentsLocaux as $doc)
+    <tr class="border-t">
+        <td class="px-6 py-4">{{ $doc->nom_fichier_original }}</td>
+        <td class="px-6 py-4">{{ $doc->type_document }}</td>
+        <td class="px-6 py-4">{{ $doc->created_at->format('d/m/Y H:i') }}</td>
+        <td class="px-6 py-4">
+            <span class="badge {{ $doc->statut_ocr === 'traite' ? 'badge-success' : 'badge-warning' }}">
+                {{ $doc->statut_ocr }}
+            </span>
+        </td>
+        <td class="px-6 py-4">
+            <a href="{{ asset('storage/' . $doc->chemin_stockage) }}" target="_blank" class="text-blue-600 hover:underline">
+                Voir le fichier
+            </a>
+        </td> 
+    </tr>
+    
+                        @empty
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-500">
+                                Aucun document pour le moment
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Documents OCR -->
         <div class="section-card section-ocr">
             <div class="section-title">
@@ -373,45 +420,7 @@
             </div>
         </div>
 
-        <!-- Documents récents -->
-        <div class="section-card section-recent">
-            <div class="section-title">
-                <span class="section-title-icon">📄</span>
-                Documents récents
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nom du fichier</th>
-                            <th>Type</th>
-                            <th>Date d'upload</th>
-                            <th>Statut OCR</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($documentsLocaux as $doc)
-                        <tr>
-                            <td>{{ $doc->nom_fichier_original }}</td>
-                            <td><span class="badge badge-info">{{ $doc->type_document }}</span></td>
-                            <td>{{ $doc->created_at->format('d/m/Y H:i') }}</td>
-                            <td>
-                                <span class="badge {{ $doc->statut_ocr === 'traite' ? 'badge-success' : 'badge-warning' }}">
-                                    {{ $doc->statut_ocr }}
-                                </span>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="4" class="text-center py-8 text-gray-500">
-                                Aucun document pour le moment
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+       
 
         <!-- Documents Data Lake -->
         <div class="section-card section-datalake">

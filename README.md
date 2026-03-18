@@ -2,7 +2,8 @@
 
 ## Présentation du projet
 
-DocuHack est une plateforme développée lors d'un hackathon permettant l'upload, la classification, l'extraction et la validation de documents administratifs (factures, devis, attestations). 
+DocuHack est une plateforme développée lors d'un hackathon permettant l'upload, la classification, 
+l'extraction et la validation de documents administratifs (factures, devis, attestations). 
 Le projet suit une architecture Medallion (Bronze, Silver, Gold) et intègre plusieurs services interconnectés.
 
 ## Rôle : Frontend & API
@@ -11,7 +12,7 @@ Développement de l'interface utilisateur et des points d'entrée API pour :
 - L'upload de documents multi-formats
 - L'affichage des données issues du Data Lake (MinIO)
 - La visualisation des résultats OCR et des alertes de conformité
-- L'authentification multi-profils (commercial / conformité)
+- L'authentification multi-profils (user / admin)
 
 ## Stack technique
 
@@ -19,7 +20,7 @@ Développement de l'interface utilisateur et des points d'entrée API pour :
 - **Framework frontend** : Vue.js 3 avec Inertia
 - **Base de données** : SQLite
 - **Stockage objet** : MinIO (compatible S3)
-- **Client S3** : AWS SDK PHP
+- **Client S3** : AWS SDK PHP + league/flysystem-aws-s3-v3
 - **Authentification** : Guard Laravel avec rôles
 
 ## Architecture du projet
@@ -38,10 +39,10 @@ frontend/
 │   └── seeders/                # Données de test
 ├── resources/
 │   └── views/
-│       ├── commercial/         # Vues espace commercial
+│       ├── user/         # Vues espace utilisateur
 │       │   ├── login.blade.php
 │       │   └── dashboard.blade.php
-│       └── conformite/         # Vues espace conformité
+│       └── admin/         # Vues espace administrateur
 │           ├── login.blade.php
 │           └── dashboard.blade.php
 ├── routes/
@@ -75,6 +76,11 @@ composer install
 3. **Installer les dépendances JavaScript**
 ```bash
 npm install
+```
+
+4. **Installer le package spécifique pour MinIO**
+```bash
+composer require league/flysystem-aws-s3-v3:^3.0
 ```
 
 4. **Configurer l'environnement**
@@ -148,16 +154,16 @@ MINIO_ACCESS_KEY=admin
 MINIO_SECRET_KEY=admin1234
 ```
 
-## Utilisateurs de test
+## Identificateurs de test
 
 Deux profils sont disponibles après migration :
 
-**Commercial**
-- Email : commercial@docuhack.com
+**utilisateur(user)**
+- Email : user@docuhack.com
 - Mot de passe : password123
 
-**Conformité**
-- Email : conformite@docuhack.com
+**administrateur(admin)**
+- Email : admin@docuhack.com
 - Mot de passe : password123
 
 ## Points d'accès
@@ -165,10 +171,10 @@ Deux profils sont disponibles après migration :
 ### Interface utilisateur
 
 - Accueil : http://localhost:8000
-- Login commercial : http://localhost:8000/commercial/login
-- Dashboard commercial : http://localhost:8000/commercial/dashboard
-- Login conformité : http://localhost:8000/conformite/login
-- Dashboard conformité : http://localhost:8000/conformite/dashboard
+- Login user : http://localhost:8000/user/login
+- Dashboard user : http://localhost:8000/user/dashboard
+- Login admin : http://localhost:8000/admin/login
+- Dashboard admin : http://localhost:8000/admin/dashboard
 
 ### API principales
 
@@ -220,7 +226,7 @@ Deux profils sont disponibles après migration :
 
 ## Fonctionnalités implémentées
 
-- **Authentification** multi-profils (commercial / conformité) avec rôles
+- **Authentification** multi-profils (user / admin) avec rôles
 - **Upload** de documents (PDF, JPG, PNG) avec stockage local et envoi vers MinIO
 - **Dashboards dynamiques** avec statistiques en temps réel
 - **Affichage des données OCR** à partir de fichiers JSON
@@ -242,8 +248,8 @@ Pour tester le bon fonctionnement :
    - Vérifier sa présence dans MinIO (bucket raw-documents)
 
 3. **Tester l'affichage des données**
-   - Vérifier les trois sections du dashboard commercial
-   - Vérifier les alertes dans le dashboard conformité
+   - Vérifier les trois sections du dashboard user
+   - Vérifier les alertes dans le dashboard admin
 
 ## Déploiement avec Docker
 

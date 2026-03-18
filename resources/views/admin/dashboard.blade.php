@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conformité - DocuHack</title>
+    <title>Interface Administrateur</title>
     @vite(['resources/css/app.css'])
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -143,10 +143,10 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="logo"> DocuHack Conformité</div>
+        <div class="logo"> Supervision des Anomalies</div>
         <div class="user-info">
-            <span>👤 conformite@docuhack.com</span>
-            <a href="/conformite/login" class="logout">Déconnexion</a>
+            <span>👤 admin@docuhack.com</span>
+            <a href="/admin/login" class="logout">Déconnexion</a>
         </div>
     </nav>
 

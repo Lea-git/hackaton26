@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DocuHack - Commercial</title>
+    <title>Supervision des Anomalies</title>
     @vite(['resources/css/app.css'])
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
             min-height: 100vh;
             margin: 0;
             display: flex;
@@ -47,12 +47,12 @@
         }
         input:focus {
             outline: none;
-            border-color: #48bb78;
+            border-color: #4299e1;
         }
         button {
             width: 100%;
             padding: 0.75rem;
-            background: #48bb78;
+            background: #4299e1;
             color: white;
             border: none;
             border-radius: 5px;
@@ -62,7 +62,7 @@
             transition: background 0.3s;
         }
         button:hover {
-            background: #38a169;
+            background: #3182ce;
         }
         .back-link {
             text-align: center;
@@ -74,19 +74,19 @@
             font-size: 0.9rem;
         }
         .back-link a:hover {
-            color: #48bb78;
+            color: #4299e1;
         }
     </style>
 </head>
 <body>
     <div class="login-box">
-        <h2> Espace Commercial</h2>
+        <h2> Espace Administrateur</h2>
         
-        <form method="POST" action="/commercial/login">
+        <form method="POST" action="/admin/login">
             @csrf
             <div class="form-group">
                 <label>Email</label>
-                <input type="email" name="email" required placeholder="commercial@example.com">
+                <input type="email" name="email" required placeholder="admin@exemple.com">
             </div>
             
             <div class="form-group">
