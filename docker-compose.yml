@@ -41,7 +41,7 @@ services:
     image: mysql:8.0
     container_name: mysql-db
     ports:
-      - "3307:3306"
+      - "3006:3306"
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: laravel
@@ -126,6 +126,7 @@ services:
       AIRFLOW__CORE__FERNET_KEY: "ZmRza2xmanNka2xmanNkbGtmamRzbGtmamRzZmtqZHM="
       AIRFLOW__WEBSERVER__SECRET_KEY: "docuhack-secret-key"
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+      PYTHONPATH: "/opt/airflow:/opt/airflow/backend"
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: admin
       MINIO_SECRET_KEY: admin1234
@@ -146,7 +147,7 @@ services:
           --email admin@docuhack.local || true
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/tasks:/opt/airflow/airflow/tasks
+      - ./airflow/tasks:/opt/airflow/docuhack_tasks
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./backend:/opt/airflow/backend
@@ -165,7 +166,7 @@ services:
     environment: *airflow-env
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/tasks:/opt/airflow/airflow/tasks
+      - ./airflow/tasks:/opt/airflow/docuhack_tasks
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./backend:/opt/airflow/backend
@@ -189,7 +190,7 @@ services:
     environment: *airflow-env
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/tasks:/opt/airflow/airflow/tasks
+      - ./airflow/tasks:/opt/airflow/docuhack_tasks
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./backend:/opt/airflow/backend
