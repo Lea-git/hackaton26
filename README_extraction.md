@@ -7,7 +7,7 @@ Modèle [Donut](https://github.com/clovaai/donut) fine-tuné pour extraire des c
 ## Prérequis système
 
 **Poppler** — requis pour la conversion PDF vers image.
-- Windows : télécharger depuis [poppler-windows](https://github.com/oschwartz10612/poppler-windows/releases), extraire l'archive, et renseigner `POPPLER_PATH` dans `extraction/prepare_train_data.py` en pointant vers le dossier `bin`.
+- Windows : télécharger depuis [poppler-windows](https://github.com/oschwartz10612/poppler-windows/releases), extraire l'archive, et renseigner `POPPLER_PATH` dans `extraction/pipeline.py` et `extraction/prepare_train_data.py` en pointant vers le dossier `bin`.
 - Linux : `sudo apt install poppler-utils`
 - Mac : `brew install poppler`
 
@@ -31,14 +31,16 @@ pip install -r requirements.txt
 extraction/
 ├── prepare_train_data.py   # Convertit les PDFs/images bruts → donut_dataset/
 ├── train.py                # Fine-tune le modèle Donut
-├── extractor.py            # Module d'extraction réutilisable
+├── evaluate.py             # Métriques d'évaluation sur le jeu de test
+├── extract.py              # Module d'extraction réutilisable
 ├── pipeline.py             # Orchestre téléchargement, extraction et upload
-├── inference.py            # Script d'inférence pour des tests rapide
-├── model/                  # Modèle sauvegardé après entraînement
+├── inference.py            # Script d'inférence pour des tests rapides
+└── model/                  # Modèle sauvegardé après entraînement
+run_pipeline.py             # Point d'entrée pour lancer le batch
 output/
 ├── raw_zone/               # PDFs et images sources bruts
 └── ground_truth.json       # Labels de vérité terrain
-donut_dataset/
+donut_dataset/              # Généré par prepare_train_data.py
 ├── train/                  # Images d'entraînement + metadata.jsonl
 └── test/                   # Images de test + metadata.jsonl
 ```
@@ -49,34 +51,37 @@ donut_dataset/
 
 ### 1. Préparer les données
 ```bash
-python ./extraction/prepare_train_data.py
+python -m extraction.prepare_train_data
 ```
 
 ### 2. Entraîner le modèle
 ```bash
-python ./extraction/train.py
+python -m extraction.train
 ```
 
-### 3. Pipeline complet (datalake → extraction → datalake)
-Télécharge un document depuis la zone brute, extrait les champs et pousse le résultat en zone clean.
+### 3. Pipeline batch (datalake raw → extraction → datalake clean)
+Traite tous les documents présents dans la raw zone et pousse les résultats en zone clean :
+```bash
+python run_pipeline.py
+```
+
+### 4. Pipeline sur un seul document
 ```python
 from extraction.pipeline import run_extraction_pipeline
- 
-fields = run_extraction_pipeline("2024/factures/facture_001.pdf")
-# résultat aussi uploadé dans "2024/factures/facture_001.json"
+
+fields = run_extraction_pipeline("dataset/facture_001.pdf")
+# résultat aussi uploadé dans "dataset/facture_001.json"
 ```
 
-### 4. Extraction standalone
+### 5. Extraction standalone (sans datalake)
 ```python
-from extractor import DocumentExtractor
+from extraction.extract import DocumentExtractor
 from PIL import Image
 
 MODEL_PATH = "./extraction/model"
 extractor = DocumentExtractor(MODEL_PATH)
 
-image = Image.open(image_path).convert("RGB")
-
-# Accepte une Image PIL
+image = Image.open("./document.jpg").convert("RGB")
 fields = extractor.extract(image)
 print(fields)
 # {"emetteur": "...", "siret": "...", "total_ttc": "...", ...}
