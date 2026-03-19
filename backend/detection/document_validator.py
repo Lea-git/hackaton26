@@ -1,11 +1,15 @@
+import argparse
+import io
 import json
 import logging
+import os
 from pathlib import Path
 import sys
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, Optional, Tuple
 
+from minio import Minio
 import numpy as np
 import requests
 from sklearn.ensemble import IsolationForest
@@ -16,6 +20,15 @@ logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 BASE_DIR = Path(__file__).resolve().parent
+
+DEFAULT_MINIO_ENDPOINT = "localhost:9000"
+DEFAULT_MINIO_ACCESS_KEY = "admin"
+DEFAULT_MINIO_SECRET_KEY = "admin1234"
+DEFAULT_MINIO_SECURE = False
+DEFAULT_CLEAN_BUCKET = "clean-documents"
+DEFAULT_CURATED_BUCKET = "curated-documents"
+DEFAULT_CLEAN_PREFIX = "2026/demo/"
+DEFAULT_CURATED_PREFIX = "2026/demo/"
 
 
 class DocumentValidator:
@@ -73,6 +86,14 @@ class DocumentValidator:
                 return parsed
             raise ValueError("JSON payload must be an object")
         raise TypeError("json_data must be a dict or a JSON string")
+
+    @staticmethod
+    def _first_non_empty(payload: Dict[str, Any], *keys: str) -> Any:
+        for key in keys:
+            value = payload.get(key)
+            if value not in (None, ""):
+                return value
+        return None
 
     @staticmethod
     def _normalize_siret(siret: Any) -> str:
@@ -212,12 +233,13 @@ class DocumentValidator:
                 "metadata": metadata,
             }
 
-        metadata["document_type"] = payload.get("document_type")
-        metadata["input_vendor_name"] = payload.get("vendor_name")
+        metadata["document_type"] = self._first_non_empty(payload, "document_type", "type_document")
+        vendor_name = self._first_non_empty(payload, "vendor_name", "entreprise", "emetteur")
+        metadata["input_vendor_name"] = vendor_name
 
-        siret = payload.get("siret")
-        ht = payload.get("montant_ht")
-        ttc = payload.get("montant_ttc")
+        siret = self._first_non_empty(payload, "siret")
+        ht = self._first_non_empty(payload, "montant_ht", "total_ht")
+        ttc = self._first_non_empty(payload, "montant_ttc", "total_ttc")
 
         try:
             siret_ok, api_name, siret_meta = self._validate_siret(siret)
@@ -238,7 +260,7 @@ class DocumentValidator:
 
         try:
             semantic_ok, semantic_score = self._check_semantic(
-                payload.get("vendor_name"), metadata.get("api_company_name")
+                vendor_name, metadata.get("api_company_name")
             )
             metadata["semantic"] = {
                 "match": semantic_ok,
@@ -303,15 +325,163 @@ def analyze_file(file_path: str, validator: Optional[DocumentValidator] = None) 
     return active_validator.analyze(payload)
 
 
+def _read_env_bool(env_name: str, default: bool = False) -> bool:
+    value = os.getenv(env_name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _build_minio_client() -> Minio:
+    endpoint = os.getenv("MINIO_ENDPOINT", DEFAULT_MINIO_ENDPOINT)
+    access_key = os.getenv("MINIO_ACCESS_KEY", os.getenv("MINIO_ACCESS", DEFAULT_MINIO_ACCESS_KEY))
+    secret_key = os.getenv("MINIO_SECRET_KEY", os.getenv("MINIO_SECRET", DEFAULT_MINIO_SECRET_KEY))
+    secure = _read_env_bool("MINIO_SECURE", DEFAULT_MINIO_SECURE)
+    return Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
+
+
+def _build_curated_object_name(source_object_name: str, clean_prefix: str, curated_prefix: str) -> str:
+    normalized_source = source_object_name.lstrip("/")
+    normalized_clean_prefix = clean_prefix.strip("/")
+    normalized_curated_prefix = curated_prefix.strip("/")
+
+    suffix = normalized_source
+    if normalized_clean_prefix and normalized_source.startswith(f"{normalized_clean_prefix}/"):
+        suffix = normalized_source[len(normalized_clean_prefix) + 1 :]
+
+    if normalized_curated_prefix:
+        return f"{normalized_curated_prefix}/{suffix}".strip("/")
+    return suffix
+
+
+def analyze_clean_bucket_to_curated(
+    validator: DocumentValidator,
+    clean_bucket: str = DEFAULT_CLEAN_BUCKET,
+    curated_bucket: str = DEFAULT_CURATED_BUCKET,
+    clean_prefix: str = DEFAULT_CLEAN_PREFIX,
+    curated_prefix: str = DEFAULT_CURATED_PREFIX,
+) -> Dict[str, int]:
+    client = _build_minio_client()
+    logger = logging.getLogger("MinIOPipeline")
+
+    if not client.bucket_exists(clean_bucket):
+        raise RuntimeError(f"Clean bucket not found: {clean_bucket}")
+
+    if not client.bucket_exists(curated_bucket):
+        client.make_bucket(curated_bucket)
+        logger.info("Created missing curated bucket: %s", curated_bucket)
+
+    summary = {"processed": 0, "written": 0, "failed": 0}
+
+    for obj in client.list_objects(clean_bucket, prefix=clean_prefix, recursive=True):
+        object_name = obj.object_name
+        if not object_name.lower().endswith(".json"):
+            continue
+
+        summary["processed"] += 1
+        response = None
+
+        try:
+            response = client.get_object(clean_bucket, object_name)
+            payload = json.loads(response.read().decode("utf-8-sig"))
+        except Exception as exc:
+            summary["failed"] += 1
+            logger.exception("Unable to read/parse JSON from %s: %s", object_name, exc)
+            continue
+        finally:
+            if response is not None:
+                response.close()
+                response.release_conn()
+
+        try:
+            result = validator.analyze(payload)
+            curated_object_name = _build_curated_object_name(
+                source_object_name=object_name,
+                clean_prefix=clean_prefix,
+                curated_prefix=curated_prefix,
+            )
+
+            curated_payload = {
+                "source_bucket": clean_bucket,
+                "source_object": object_name,
+                "validated_at": datetime.now(timezone.utc).isoformat(),
+                "input": payload,
+                "validation": result,
+            }
+
+            encoded = json.dumps(curated_payload, ensure_ascii=False, indent=2).encode("utf-8")
+            client.put_object(
+                curated_bucket,
+                curated_object_name,
+                io.BytesIO(encoded),
+                len(encoded),
+                content_type="application/json",
+            )
+
+            summary["written"] += 1
+            logger.info("Processed %s -> %s", object_name, curated_object_name)
+        except Exception as exc:
+            summary["failed"] += 1
+            logger.exception("Unable to analyze/store curated object for %s: %s", object_name, exc)
+
+    return summary
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     )
 
+    parser = argparse.ArgumentParser(description="Validate documents locally or from MinIO clean zone.")
+    parser.add_argument(
+        "--mode",
+        choices=["minio", "local"],
+        default="minio",
+        help="Execution mode. minio reads from clean bucket and writes to curated bucket.",
+    )
+    parser.add_argument(
+        "--clean-bucket",
+        default=os.getenv("MINIO_CLEAN_BUCKET", DEFAULT_CLEAN_BUCKET),
+        help="MinIO clean bucket name.",
+    )
+    parser.add_argument(
+        "--curated-bucket",
+        default=os.getenv("MINIO_CURATED_BUCKET", DEFAULT_CURATED_BUCKET),
+        help="MinIO curated bucket name.",
+    )
+    parser.add_argument(
+        "--clean-prefix",
+        default=os.getenv("MINIO_CLEAN_PREFIX", DEFAULT_CLEAN_PREFIX),
+        help="Prefix to scan in clean bucket.",
+    )
+    parser.add_argument(
+        "--curated-prefix",
+        default=os.getenv("MINIO_CURATED_PREFIX", DEFAULT_CURATED_PREFIX),
+        help="Prefix used when writing curated objects.",
+    )
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        help="Local JSON files to validate when --mode local is used.",
+    )
+    args = parser.parse_args()
+
     validator = DocumentValidator()
+
+    if args.mode == "minio":
+        run_summary = analyze_clean_bucket_to_curated(
+            validator=validator,
+            clean_bucket=args.clean_bucket,
+            curated_bucket=args.curated_bucket,
+            clean_prefix=args.clean_prefix,
+            curated_prefix=args.curated_prefix,
+        )
+        print(json.dumps(run_summary, ensure_ascii=False, indent=2))
+        sys.exit(1 if run_summary["failed"] else 0)
+
     default_targets = ["facture_ok.json", "facture_math_error.json", "facture_fake_siret.json"]
-    targets = sys.argv[1:]
+    targets = args.targets
     if not targets:
         targets = [
             target
