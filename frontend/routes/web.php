@@ -20,12 +20,12 @@ Route::get('/', function () {
 Route::post('/upload', function (Request $request) {
     $request->validate([
         'documents'   => 'required|array|min:1|max:10',
-        'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240'
+        'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:51200'
     ], [
         'documents.required'  => 'Sélectionnez au moins un fichier',
         'documents.max'       => 'Maximum 10 fichiers à la fois',
         'documents.*.mimes'   => 'Format accepté : PDF, JPG, PNG',
-        'documents.*.max'     => 'Chaque fichier doit faire moins de 10 Mo',
+        'documents.*.max'     => 'Chaque fichier doit faire moins de 50 Mo',
     ]);
 
     $dataLakeClient = new DataLakeClient();
