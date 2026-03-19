@@ -30,9 +30,17 @@ services:
       - "8080:80"
     volumes:
       - ./frontend:/var/www/html
+    environment:
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_ACCESS_KEY: "admin"
+      MINIO_SECRET_KEY: "admin1234"
+      AIRFLOW_API_URL: "http://airflow-webserver:8080"
+      AIRFLOW_USER: "admin"
+      AIRFLOW_PASSWORD: "admin"
     depends_on:
-      - backend
       - db
+      - minio
+      - airflow-webserver
 
   # ─────────────────────────────
   # Base de données MySQL
@@ -134,6 +142,7 @@ services:
       LARAVEL_API_URL: "http://frontend:80/api"
       GROUND_TRUTH_PATH: "/opt/airflow/backend/output/ground_truth.json"
       OCR_MODE: "real"
+      MODEL_PATH: "/opt/airflow/model"
     entrypoint: /bin/bash
     command:
       - -c
@@ -152,6 +161,7 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./backend:/opt/airflow/backend
+      - ./model:/opt/airflow/model
 
   # ─────────────────────────────
   # Airflow - Webserver
@@ -171,6 +181,7 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./backend:/opt/airflow/backend
+      - ./model:/opt/airflow/model
     command: airflow webserver
     restart: unless-stopped
     healthcheck:
@@ -195,6 +206,7 @@ services:
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
       - ./backend:/opt/airflow/backend
+      - ./model:/opt/airflow/model
     command: airflow scheduler
     restart: unless-stopped
 

@@ -17,6 +17,7 @@ Route::get('/documents', [DocumentController::class, 'index']);
 Route::post('/documents', [DocumentController::class, 'store']);
 Route::get('/documents/{id}', [DocumentController::class, 'show']);
 Route::patch('/documents/{id}/type', [DocumentController::class, 'updateType']);
+Route::patch('/documents/{id}/status', [DocumentController::class, 'updateStatus']);
 Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
 
 // Extractions OCR

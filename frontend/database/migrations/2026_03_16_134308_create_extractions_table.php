@@ -36,6 +36,6 @@ public function up()
      */
     public function down(): void
     {
-        Schema::dropIfExists('extracted_data');
+        Schema::dropIfExists('extractions');
     }
 };

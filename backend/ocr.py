@@ -57,41 +57,66 @@ def extract_text_from_image(image):
 
 
 def extract_text_from_pdf(pdf_path):
+    """Extrait le texte d'un PDF.
+    Utilise pdfplumber en priorité (PDFs textuels), avec fallback Tesseract (scans).
+    """
+    try:
+        import pdfplumber
+        with pdfplumber.open(pdf_path) as pdf:
+            pages_text = [page.extract_text() or "" for page in pdf.pages]
+        full_text = "\n".join(pages_text)
+        if len(full_text.strip()) > 50:
+            return full_text
+    except Exception:
+        pass
+
+    # Fallback : conversion image + Tesseract (pour PDFs scannés)
     pages = convert_from_path(pdf_path)
     full_text = ""
-
     for page in pages:
         image = np.array(page)
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         full_text += extract_text_from_image(image) + "\n"
-
     return full_text
 
 
 # -------------------------
 # Extraction MAXIMALE
 # -------------------------
-def extract_amount_with_label(patterns, text):
+def _parse_amount(raw):
+    """Convertit une chaîne montant (ex: '8 400,00' ou '8.400,00') en float."""
+    # Supprimer les séparateurs de milliers (espaces ou points avant la virgule)
+    raw = re.sub(r'[\s\.](?=\d{3}(?:[,\.]\d{2}|$))', '', raw)
+    raw = raw.replace(",", ".")
+    try:
+        return float(raw)
+    except (ValueError, TypeError):
+        return 0.0
 
+
+def extract_amount_with_label(patterns, text):
+    # Montant : chiffres avec séparateurs de milliers optionnels + décimales
+    _amt = r'(\d[\d\s\.]*[,\.]\d{2})'
     for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
+        match = re.search(pattern.replace(r'(\d+[.,]\d+)', _amt), text, re.IGNORECASE)
         if match:
             label = match.group(1).strip()
-            value = match.group(2).replace(",", ".")
-            return {
-                "label": label,
-                "value": float(value)
-            }
-
+            value = _parse_amount(match.group(2))
+            if value > 0:
+                return {"label": label, "value": value}
     return None
+
 
 def extract_all_fields(text):
 
     data = {}
 
-    # SIRET
-    siret = re.search(r'\b\d{14}\b', text)
-    data["siret"] = siret.group() if siret else None
+    # SIRET : 14 chiffres consécutifs, avec espaces optionnels entre groupes
+    siret_match = re.search(r'\b(\d{3}[\s]?\d{3}[\s]?\d{3}[\s]?\d{5})\b', text)
+    if siret_match:
+        data["siret"] = re.sub(r'\s', '', siret_match.group(1))
+    else:
+        data["siret"] = None
 
     # IBAN
     iban = re.search(r'\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b', text)
@@ -101,34 +126,46 @@ def extract_all_fields(text):
     bic = re.search(r'\b[A-Z]{8,11}\b', text)
     data["bic"] = bic.group() if bic else None
 
-    # Tous les montants
-    amounts = re.findall(r'\d+[.,]\d{2}', text)
+    # Tous les montants (avec séparateurs de milliers)
+    amounts = re.findall(r'\d[\d\s]*[.,]\d{2}', text)
     data["montants_detectes"] = list(set(amounts))
 
     # TTC
     data["montant_ttc"] = extract_amount_with_label([
-    r'(TTC|Total TTC)[^\d]*(\d+[.,]\d+)',
-    r'(Montant TTC)[^\d]*(\d+[.,]\d+)',
-    r'(Net à payer)[^\d]*(\d+[.,]\d+)'
+        r'(Total TTC)\s*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(TTC)\s*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(Montant TTC)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(Net à payer)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
     ], text)
+
     # HT
     data["montant_ht"] = extract_amount_with_label([
-    r'(HT|Hors Taxe)[^\d]*(\d+[.,]\d+)',
-    r'(Montant HT)[^\d]*(\d+[.,]\d+)'
+        r'(Total HT)\s*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(Montant HT)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(HT|Hors Taxe)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
     ], text)
 
     # TVA
     data["tva"] = extract_amount_with_label([
-    r'(TVA)[^\d]*(\d+[.,]\d+)'
+        r'(TVA \d+\s*%?)\s*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(TVA)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
     ], text)
 
     # Dates
     dates = re.findall(r'\d{2}/\d{2}/\d{4}', text)
     data["dates"] = dates
 
-    # Nom entreprise (heuristique simple)
-    words = text.split(" ")
-    data["nom_entreprise"] = words[0] if words else None
+    # Nom entreprise : cherche SARL/SAS/EURL/SA/SNC suivi du nom
+    company_match = re.search(
+        r'\b((?:SARL|SAS|EURL|SA|SNC|SASU|SCOP)\s+[\w\s\-&\']+?)(?:\s*[-–—]|\s*\n|\s{2,}|,)',
+        text, re.IGNORECASE
+    )
+    if company_match:
+        data["nom_entreprise"] = company_match.group(1).strip()
+    else:
+        # fallback : première ligne non vide
+        lines = [l.strip() for l in text.split('\n') if l.strip()]
+        data["nom_entreprise"] = lines[0] if lines else None
 
     # Keywords
     keywords = [

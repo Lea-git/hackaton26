@@ -71,7 +71,7 @@ class DataLakeClient
         // Upload vers le bucket raw-documents
         $result = $client->putObject([
             'Bucket' => 'raw-documents',
-            'Key' => date('Y/m/d/') . $nomFichier,
+            'Key' => $nomFichier,
             'Body' => fopen($fichier->getPathname(), 'r'),
             'ContentType' => $fichier->getMimeType(),
         ]);

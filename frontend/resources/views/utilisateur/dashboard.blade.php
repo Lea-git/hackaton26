@@ -151,26 +151,6 @@
             border-radius: 16px;
             border: 1px solid rgba(255,255,255,0.2);
         }
-        .upload-section input[type="file"] {
-            display: block;
-            width: 100%;
-            padding: 0.75rem;
-            background: white;
-            border: 2px dashed #a5b4fc;
-            border-radius: 10px;
-            color: #1f2937;
-            cursor: pointer;
-        }
-        .upload-section input[type="file"]:hover {
-            border-color: #667eea;
-            background: #f5f3ff;
-        }
-        #fichier-count {
-            margin-top: 0.4rem;
-            font-size: 0.8rem;
-            color: #4f46e5;
-            font-weight: 500;
-        }
         .upload-section button {
             background: white;
             color: #667eea;
@@ -184,6 +164,68 @@
         .upload-section button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+        }
+        .drop-zone {
+            background: rgba(255,255,255,0.9);
+            border: 2px dashed #a5b4fc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #4b5563;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: #667eea;
+            background: #f5f3ff;
+        }
+        #file-list {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.85);
+            border-radius: 8px;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.82rem;
+            color: #1f2937;
+        }
+        .file-item button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 20px;
+            font-weight: 700;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .file-item button:hover {
+            background: #dc2626;
+            transform: none;
+            box-shadow: none;
+        }
+        #upload-submit {
+            margin-top: 1rem;
+        }
+        #upload-progress {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            color: white;
+            font-weight: 500;
+            display: none;
         }
         
         /* Stats */
@@ -324,32 +366,90 @@
                     ✗ {{ session('error') }}
                 </div>
             @endif
-            <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4 flex-wrap">
-                @csrf
-                <div class="flex-1 min-w-[300px]">
-                    <label style="display:block;font-size:0.85rem;color:white;margin-bottom:0.35rem;font-weight:500;">
-                        📎 Sélectionner un ou plusieurs fichiers (PDF, JPG, PNG)
-                    </label>
-                    <input type="file" name="documents[]" id="fichier-simple"
-                           accept=".pdf,.jpg,.jpeg,.png" multiple required>
-                    <div id="fichier-count">Aucun fichier sélectionné</div>
+            <div>
+                <input type="file" id="fichier-hidden" accept=".pdf,.jpg,.jpeg,.png" multiple style="display:none">
+                <div class="drop-zone" id="drop-zone" onclick="document.getElementById('fichier-hidden').click()">
+                    <div style="font-size:2rem;margin-bottom:0.5rem;">📎</div>
+                    <div style="font-weight:600;color:#4b5563;">Cliquez ou glissez vos fichiers ici</div>
+                    <div style="font-size:0.8rem;color:#6b7280;margin-top:0.25rem;">PDF, JPG, PNG — max 50 Mo par fichier</div>
                 </div>
-                <button type="submit" class="whitespace-nowrap">
-                    Uploader
+                <div id="file-list"></div>
+                <div id="upload-progress">⏳ Upload en cours...</div>
+                <button type="button" id="upload-submit" onclick="submitFiles()" style="display:none">
+                    ⬆️ Uploader <span id="upload-count"></span>
                 </button>
-            </form>
+            </div>
             <script>
-                document.getElementById('fichier-simple').addEventListener('change', function() {
-                    const count = this.files.length;
-                    const el = document.getElementById('fichier-count');
-                    if (count === 0) {
-                        el.textContent = 'Aucun fichier sélectionné';
-                    } else if (count === 1) {
-                        el.textContent = '✓ 1 fichier sélectionné : ' + this.files[0].name;
-                    } else {
-                        el.textContent = '✓ ' + count + ' fichiers sélectionnés';
+                const dt = new DataTransfer();
+                const hiddenInput = document.getElementById('fichier-hidden');
+                const dropZone = document.getElementById('drop-zone');
+                const fileList = document.getElementById('file-list');
+                const submitBtn = document.getElementById('upload-submit');
+                const uploadCount = document.getElementById('upload-count');
+                const progressEl = document.getElementById('upload-progress');
+
+                function addFiles(files) {
+                    for (const f of files) {
+                        // Avoid duplicates by name+size
+                        let exists = false;
+                        for (const existing of dt.files) {
+                            if (existing.name === f.name && existing.size === f.size) { exists = true; break; }
+                        }
+                        if (!exists) dt.items.add(f);
                     }
+                    renderList();
+                }
+
+                function renderList() {
+                    fileList.innerHTML = '';
+                    for (let i = 0; i < dt.files.length; i++) {
+                        const f = dt.files[i];
+                        const item = document.createElement('div');
+                        item.className = 'file-item';
+                        item.innerHTML = `<span>📄 ${f.name} <span style="color:#9ca3af;">(${(f.size/1024/1024).toFixed(2)} Mo)</span></span>`;
+                        const removeBtn = document.createElement('button');
+                        removeBtn.textContent = '×';
+                        removeBtn.title = 'Supprimer';
+                        removeBtn.onclick = () => { dt.items.remove(i); renderList(); };
+                        item.appendChild(removeBtn);
+                        fileList.appendChild(item);
+                    }
+                    const n = dt.files.length;
+                    if (n > 0) {
+                        submitBtn.style.display = 'inline-block';
+                        uploadCount.textContent = n + ' fichier' + (n > 1 ? 's' : '');
+                    } else {
+                        submitBtn.style.display = 'none';
+                    }
+                }
+
+                hiddenInput.addEventListener('change', function() {
+                    addFiles(this.files);
+                    this.value = ''; // reset so same file can be re-added later
                 });
+
+                // Drag & drop
+                dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+                dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+                dropZone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    dropZone.classList.remove('drag-over');
+                    addFiles(e.dataTransfer.files);
+                });
+
+                function submitFiles() {
+                    if (dt.files.length === 0) return;
+                    const formData = new FormData();
+                    formData.append('_token', '{{ csrf_token() }}');
+                    for (const f of dt.files) {
+                        formData.append('documents[]', f);
+                    }
+                    submitBtn.disabled = true;
+                    progressEl.style.display = 'block';
+                    fetch('{{ route("upload") }}', { method: 'POST', body: formData })
+                        .then(r => { window.location.href = r.url || '/utilisateur/dashboard'; })
+                        .catch(() => { window.location.reload(); });
+                }
             </script>
         </div>
 
@@ -437,7 +537,10 @@
                             <td><span class="badge badge-info">{{ $doc->type_document }}</span></td>
                             <td>{{ $doc->created_at->format('d/m/Y H:i') }}</td>
                             <td>
-                                <span class="badge {{ $doc->statut_ocr === 'traite' ? 'badge-success' : 'badge-warning' }}">
+                                <span class="badge {{
+                                    $doc->statut_ocr === 'traite' ? 'badge-success' :
+                                    ($doc->statut_ocr === 'erreur' ? 'badge-danger' : 'badge-warning')
+                                }}">
                                     {{ $doc->statut_ocr }}
                                 </span>
                             </td>

@@ -1,7 +1,7 @@
 """
 docuhack_pipeline.py — DAG Airflow pour le pipeline DocuHack.
 
-Chaîne : scan_raw → ingest → ocr_extract → ner → validate → [populate_crm, populate_conformite]
+Chaîne : scan_raw → ingest → ocr_extract → model_extract → ner → validate → [populate_crm, populate_conformite]
 """
 
 import os
@@ -17,6 +17,7 @@ sys.path.insert(0, "/opt/airflow")
 sys.path.insert(0, "/opt/airflow/backend")
 
 from docuhack_tasks.ingest import scan_raw_zone, ingest_documents
+from docuhack_tasks.model_extract import model_extract
 from docuhack_tasks.ner_structure import ner_structuration
 from docuhack_tasks.validate import validate_documents
 from docuhack_tasks.populate_crm import populate_crm
@@ -94,6 +95,12 @@ with DAG(
         provide_context=True,
     )
 
+    model = PythonOperator(
+        task_id="model_extract",
+        python_callable=model_extract,
+        provide_context=True,
+    )
+
     ner = PythonOperator(
         task_id="ner_structuration",
         python_callable=ner_structuration,
@@ -119,4 +126,4 @@ with DAG(
     )
 
     # Chaîne de tâches
-    scan_raw >> ingest >> ocr >> ner >> validate >> [crm, conformite]
+    scan_raw >> ingest >> ocr >> model >> ner >> validate >> [crm, conformite]

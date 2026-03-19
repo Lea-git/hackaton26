@@ -85,12 +85,31 @@ class DocumentController extends Controller
         ]);
     }
 
+    // Mettre à jour le statut OCR (depuis Airflow)
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'statut_ocr' => 'required|in:en_attente,traite,erreur'
+        ]);
+
+        $document = Document::findOrFail($id);
+        $document->statut_ocr = $request->input('statut_ocr');
+        $document->save();
+
+        return response()->json(['success' => true, 'data' => $document]);
+    }
+
     // Obtenir le fichier
     public function download($id)
     {
         $document = Document::findOrFail($id);
-        
-        if (!Storage::disk('public')->exists($document->chemin_stockage)) {
+        $chemin = $document->chemin_stockage;
+
+        if (str_starts_with($chemin, 'raw-documents/')) {
+            return redirect('http://localhost:9000/' . $chemin);
+        }
+
+        if (!Storage::disk('public')->exists($chemin)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Fichier non trouvé'
@@ -98,7 +117,7 @@ class DocumentController extends Controller
         }
 
         return response()->download(
-            Storage::disk('public')->path($document->chemin_stockage),
+            Storage::disk('public')->path($chemin),
             $document->nom_fichier_original
         );
     }

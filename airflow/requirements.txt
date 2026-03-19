@@ -1,7 +1,11 @@
 minio==7.2.3
+pdfplumber
 requests
 python-dotenv
 numpy<2
 opencv-python-headless
 pytesseract
 pdf2image
+torch
+transformers
+Pillow

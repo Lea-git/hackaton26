@@ -54,6 +54,11 @@ class LaravelAPIClient:
             "type_document": type_doc,
         })
 
+    def update_document_status(self, document_id, statut_ocr):
+        return self._patch(f"/documents/{document_id}/status", {
+            "statut_ocr": statut_ocr,
+        })
+
     # ── Fournisseurs ───────────────────────────────────────
 
     def get_fournisseurs(self):

@@ -74,21 +74,36 @@ def _build_structured_json(gt_entry):
     }
 
 
-def _build_structured_json_from_ocr(ocr_fields, doc_type, filename):
-    """Construit un document JSON structuré à partir des champs OCR réels."""
-    siret = ocr_fields.get("siret") or ""
+def _to_float(v):
+    """Convertit une valeur (str ou None) en float, retourne 0 si impossible."""
+    if v is None:
+        return 0
+    try:
+        return float(str(v).replace(",", "."))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _build_structured_json_from_ocr(ocr_fields, doc_type, filename, model_fields=None):
+    """Construit un document JSON structuré.
+
+    Utilise en priorité les champs extraits par le modèle Donut (model_fields),
+    avec fallback sur les champs OCR/regex (ocr_fields).
+    """
+    mf = model_fields or {}
+
+    siret = mf.get("siret") or ocr_fields.get("siret") or ""
     siren = siret[:9] if len(siret) >= 9 else siret
 
-    # Extraire les montants
+    # Montants : modèle en priorité, sinon OCR regex
     montant_ht_data = ocr_fields.get("montant_ht")
     montant_ttc_data = ocr_fields.get("montant_ttc")
     tva_data = ocr_fields.get("tva")
 
-    montant_ht = montant_ht_data["value"] if montant_ht_data else 0
-    montant_ttc = montant_ttc_data["value"] if montant_ttc_data else 0
-    tva = tva_data["value"] if tva_data else 0
+    montant_ht = _to_float(mf.get("total_ht")) or (montant_ht_data["value"] if montant_ht_data else 0)
+    montant_ttc = _to_float(mf.get("total_ttc")) or (montant_ttc_data["value"] if montant_ttc_data else 0)
+    tva = _to_float(mf.get("tva")) or (tva_data["value"] if tva_data else 0)
 
-    # Heuristique de validation : vérifier cohérence TVA
     anomalies = []
     is_valid = True
     if montant_ht > 0:
@@ -104,13 +119,13 @@ def _build_structured_json_from_ocr(ocr_fields, doc_type, filename):
         "document_type": doc_type,
         "category": "",
         "entities": {
-            "emetteur": None,
-            "entreprise": ocr_fields.get("nom_entreprise"),
+            "emetteur": mf.get("emetteur"),
+            "entreprise": mf.get("entreprise") or ocr_fields.get("nom_entreprise"),
             "siren": siren,
             "siret": siret,
             "siret_attendu": None,
-            "client": None,
-            "valideur": None,
+            "client": mf.get("client"),
+            "valideur": mf.get("valideur"),
         },
         "financials": {
             "montant_ht": montant_ht,
@@ -134,7 +149,8 @@ def _build_structured_json_from_ocr(ocr_fields, doc_type, filename):
 def ner_structuration(**context):
     """Transforme les données OCR en JSON structuré et uploade dans curated-documents."""
     ti = context["ti"]
-    ocr_results = ti.xcom_pull(task_ids="ocr_extract")
+    # Tire depuis model_extract qui enrichit les résultats de ocr_extract
+    ocr_results = ti.xcom_pull(task_ids="model_extract")
 
     if not ocr_results:
         logger.info("[ner] Aucun document à structurer")
@@ -151,8 +167,9 @@ def ner_structuration(**context):
             structured_data = _build_structured_json(doc["gt_entry"])
         else:
             ocr_fields = doc.get("ocr_fields", {})
+            model_fields = doc.get("model_fields", {})
             doc_type = doc.get("doc_type", "inconnu")
-            structured_data = _build_structured_json_from_ocr(ocr_fields, doc_type, filename)
+            structured_data = _build_structured_json_from_ocr(ocr_fields, doc_type, filename, model_fields)
 
         curated_name = filename.rsplit(".", 1)[0] + ".json"
         payload = json.dumps(structured_data, ensure_ascii=False, indent=2).encode("utf-8")

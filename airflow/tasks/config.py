@@ -20,6 +20,9 @@ LARAVEL_API_URL = os.getenv("LARAVEL_API_URL", "http://frontend:80/api")
 # ── Ground Truth ───────────────────────────────────────────
 GROUND_TRUTH_PATH = os.getenv("GROUND_TRUTH_PATH", "/opt/airflow/backend/output/ground_truth.json")
 
+# ── Modèle Donut ───────────────────────────────────────────
+MODEL_PATH = os.getenv("MODEL_PATH", "/opt/airflow/model")
+
 # ── Mapping scénario → description ─────────────────────────
 SCENARIO_MAP = {
     "SCN-1": "Fournisseur légitime – documents valides",

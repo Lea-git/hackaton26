@@ -25,6 +25,7 @@ from docuhack_tasks.config import (
     MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_SECURE,
     BUCKET_RAW, BUCKET_CLEAN,
 )
+from docuhack_tasks.laravel_client import LaravelAPIClient
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,12 @@ def real_ocr(**context):
 
         except Exception as e:
             logger.error(f"[ocr] Erreur OCR pour {filename}: {e}")
+            doc_id = doc.get("document_id")
+            if doc_id:
+                try:
+                    LaravelAPIClient().update_document_status(doc_id, "erreur")
+                except Exception as e2:
+                    logger.error(f"[ocr] Impossible de mettre à jour le statut de {filename}: {e2}")
             continue
         finally:
             if os.path.exists(tmp_path):
