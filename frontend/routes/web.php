@@ -77,15 +77,15 @@ Route::post('/upload', function (Request $request) {
     }
 
     return $successCount > 0
-        ? redirect('/commercial/dashboard')->with('success', $message)
-        : redirect('/commercial/dashboard')->with('error', 'Aucun fichier n\'a pu être uploadé');
+        ? redirect('/utilisateur/dashboard')->with('success', $message)
+        : redirect('/utilisateur/dashboard')->with('error', 'Aucun fichier n\'a pu être uploadé');
 })->name('upload');
 
-// Routes commercial
-Route::prefix('commercial')->group(function () {
+// Routes utilisateur
+Route::prefix('utilisateur')->group(function () {
     Route::get('/login', function () {
-        return view('commercial.login', ['espace' => 'Commercial']);
-    })->name('commercial.login');
+        return view('utilisateur.login', ['espace' => 'Commercial']);
+    })->name('utilisateur.login');
     
     Route::post('/login', function (Illuminate\Http\Request $request) {
         $credentials = $request->validate([
@@ -97,7 +97,7 @@ Route::prefix('commercial')->group(function () {
             $request->session()->regenerate();
             
             if (Auth::user()->role === 'commercial') {
-                return redirect('/commercial/dashboard');
+                return redirect('/utilisateur/dashboard');
             }
             return redirect('/');
         }
@@ -150,7 +150,7 @@ Route::prefix('commercial')->group(function () {
         $enAttente = Document::where('statut_ocr', 'en_attente')->count();
         $traites = Document::where('statut_ocr', 'traite')->count();
         
-        return view('commercial.dashboard', [
+        return view('utilisateur.dashboard', [
             'documentsLocaux' => $documentsLocaux,
             'documentsCurated' => $documentsCurated,
             'documentsOCR' => $documentsOCR,
@@ -159,14 +159,14 @@ Route::prefix('commercial')->group(function () {
             'enAttente' => $enAttente,
             'traites' => $traites
         ]);
-    })->name('commercial.dashboard');
+    })->name('utilisateur.dashboard');
 });
 
-// Routes conformité
-Route::prefix('conformite')->group(function () {
+// Routes administrateur
+Route::prefix('administrateur')->group(function () {
     Route::get('/login', function () {
-        return view('conformite.login', ['espace' => 'Conformité']);
-    })->name('conformite.login');
+        return view('administrateur.login', ['espace' => 'Conformité']);
+    })->name('administrateur.login');
     
     Route::post('/login', function (Illuminate\Http\Request $request) {
         $credentials = $request->validate([
@@ -178,7 +178,7 @@ Route::prefix('conformite')->group(function () {
             $request->session()->regenerate();
             
             if (Auth::user()->role === 'conformite') {
-                return redirect('/conformite/dashboard');
+                return redirect('/administrateur/dashboard');
             }
             return redirect('/');
         }
@@ -253,14 +253,14 @@ Route::prefix('conformite')->group(function () {
             }
         }
 
-        return view('conformite.dashboard', [
+        return view('administrateur.dashboard', [
             'documentsCurated' => $documentsAdaptes,
             'totalDocs'        => $totalDocs,
             'conformes'        => $conformes,
             'alertesRouges'    => $alertesRouges,
             'alertesOranges'   => $alertesOranges,
         ]);
-    })->name('conformite.dashboard');
+    })->name('administrateur.dashboard');
 });
 
 // Logout
