@@ -1,0 +1,13 @@
+{
+  "dataset": "C:\\Master2\\Hackathon\\validation_engine\\backend\\detection\\ml_dataset",
+  "labels_file": "C:\\Master2\\Hackathon\\validation_engine\\backend\\detection\\ml_dataset\\labels_ml.json",
+  "samples_used": 120,
+  "tp": 38,
+  "fp": 3,
+  "tn": 77,
+  "fn": 2,
+  "precision": 0.9268,
+  "recall": 0.95,
+  "f1": 0.9383,
+  "accuracy": 0.9583
+}
