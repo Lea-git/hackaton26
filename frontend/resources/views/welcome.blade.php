@@ -65,8 +65,8 @@
         <p class="subtitle">Traitement automatique de documents administratifs</p>
         
         <div class="buttons">
-            <a href="/commercial/login" class="btn btn-commercial"> Espace Commercial</a>
-            <a href="/conformite/login" class="btn btn-conformite"> Espace Conformité</a>
+            <a href="/utilisateur/login" class="btn btn-commercial"> Espace Utilisateur</a>
+            <a href="/administrateur/login" class="btn btn-conformite"> Espace Administrateur</a>
         </div>
     </div>
 </body>
