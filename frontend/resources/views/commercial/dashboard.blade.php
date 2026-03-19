@@ -301,16 +301,27 @@
 
         <!-- Upload Section -->
         <div class="upload-section">
-            <h3>⬆️ Uploader un document</h3>
+            <h3>⬆️ Uploader des documents</h3>
             <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4 flex-wrap">
                 @csrf
                 <div class="flex-1 min-w-[300px]">
-                    <input type="file" name="fichier" id="fichier-simple" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <input type="file" name="documents[]" id="fichier-simple" accept=".pdf,.jpg,.jpeg,.png" multiple required>
+                    <small style="color:#6b7280;font-size:0.75rem;">PDF, JPG, PNG — max 10 fichiers, 10 Mo chacun</small>
                 </div>
                 <button type="submit" class="whitespace-nowrap">
                     Uploader
                 </button>
             </form>
+            @if(session('success'))
+                <div style="margin-top:0.75rem;color:#065f46;background:#d1fae5;padding:0.5rem 1rem;border-radius:8px;font-size:0.875rem;">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div style="margin-top:0.75rem;color:#991b1b;background:#fee2e2;padding:0.5rem 1rem;border-radius:8px;font-size:0.875rem;">
+                    {{ session('error') }}
+                </div>
+            @endif
         </div>
 
         <!-- Statistiques DYNAMIQUES -->
@@ -387,6 +398,7 @@
                             <th>Type</th>
                             <th>Date d'upload</th>
                             <th>Statut OCR</th>
+                            <th>Visualiser</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -400,10 +412,15 @@
                                     {{ $doc->statut_ocr }}
                                 </span>
                             </td>
+                            <td>
+                                <a href="{{ asset('storage/' . $doc->chemin_stockage) }}" target="_blank" style="color:#3b82f6;text-decoration:underline;font-size:0.875rem;">
+                                    Voir le fichier
+                                </a>
+                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center py-8 text-gray-500">
+                            <td colspan="5" class="text-center py-8 text-gray-500">
                                 Aucun document pour le moment
                             </td>
                         </tr>

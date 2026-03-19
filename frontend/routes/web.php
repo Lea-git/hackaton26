@@ -16,48 +16,69 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Route d'upload
+// Route d'upload multi-documents
 Route::post('/upload', function (Request $request) {
     $request->validate([
-        'fichier' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240'
+        'documents'   => 'required|array|min:1|max:10',
+        'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240'
+    ], [
+        'documents.required'  => 'Sélectionnez au moins un fichier',
+        'documents.max'       => 'Maximum 10 fichiers à la fois',
+        'documents.*.mimes'   => 'Format accepté : PDF, JPG, PNG',
+        'documents.*.max'     => 'Chaque fichier doit faire moins de 10 Mo',
     ]);
 
-    $fichier = $request->file('fichier');
-    
-    // 1. Stockage local
-    $chemin = $fichier->store('documents', 'public');
-    
-    // 2. Sauvegarde en BDD
-    $document = Document::create([
-        'nom_fichier_original' => $fichier->getClientOriginalName(),
-        'chemin_stockage' => $chemin,
-        'type_document' => 'non_classe',
-        'statut_ocr' => 'en_attente',
-        'mime_type' => $fichier->getMimeType(),
-        'taille_fichier' => $fichier->getSize()
-    ]);
-    
-    // 3. Envoi vers le Data Lake (RAW zone) pour OCR
-    try {
-        $dataLakeClient = new DataLakeClient();
-        $uploaded = $dataLakeClient->uploadRaw($fichier, $fichier->getClientOriginalName());
-        
-        if ($uploaded) {
-            Log::info('Document envoyé au Data Lake pour OCR');
+    $dataLakeClient = new DataLakeClient();
+    $successCount   = 0;
+    $errors         = [];
+
+    foreach ($request->file('documents') as $fichier) {
+        try {
+            // 1. Stockage local
+            $chemin = $fichier->store('documents', 'public');
+
+            // 2. Sauvegarde en BDD
+            Document::create([
+                'nom_fichier_original' => $fichier->getClientOriginalName(),
+                'chemin_stockage'      => $chemin,
+                'type_document'        => 'non_classe',
+                'statut_ocr'           => 'en_attente',
+                'mime_type'            => $fichier->getMimeType(),
+                'taille_fichier'       => $fichier->getSize(),
+            ]);
+
+            // 3. Envoi vers le Data Lake (RAW zone)
+            try {
+                $dataLakeClient->uploadRaw($fichier, $fichier->getClientOriginalName());
+                Log::info('Document envoyé au Data Lake: ' . $fichier->getClientOriginalName());
+            } catch (\Exception $e) {
+                Log::error('Erreur envoi Data Lake: ' . $e->getMessage());
+            }
+
+            $successCount++;
+        } catch (\Exception $e) {
+            $errors[] = $fichier->getClientOriginalName() . ': ' . $e->getMessage();
         }
-    } catch (\Exception $e) {
-        Log::error('Erreur envoi Data Lake: ' . $e->getMessage());
     }
 
-    // 4. Déclencher le pipeline Airflow
-    try {
-        Http::timeout(5)->post('http://backend:8000/trigger-pipeline');
-        Log::info('Pipeline Airflow déclenché après upload');
-    } catch (\Exception $e) {
-        Log::warning('Impossible de déclencher le pipeline: ' . $e->getMessage());
+    // 4. Déclencher le pipeline Airflow une seule fois
+    if ($successCount > 0) {
+        try {
+            Http::timeout(5)->post('http://backend:8000/trigger-pipeline');
+            Log::info('Pipeline Airflow déclenché après upload');
+        } catch (\Exception $e) {
+            Log::warning('Impossible de déclencher le pipeline: ' . $e->getMessage());
+        }
     }
 
-    return redirect('/commercial/dashboard')->with('success', 'Fichier uploadé avec succès (pipeline de traitement déclenché)');
+    $message = $successCount . ' fichier(s) uploadé(s) avec succès (pipeline déclenché)';
+    if (!empty($errors)) {
+        $message .= ' — ' . count($errors) . ' échec(s)';
+    }
+
+    return $successCount > 0
+        ? redirect('/commercial/dashboard')->with('success', $message)
+        : redirect('/commercial/dashboard')->with('error', 'Aucun fichier n\'a pu être uploadé');
 })->name('upload');
 
 // Routes commercial
