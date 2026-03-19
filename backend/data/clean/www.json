@@ -1,0 +1,27 @@
+{
+    "filename": "www.txt",
+    "type": "facture",
+    "scores": {
+        "facture": 1,
+        "devis": 0,
+        "rib": 0,
+        "extrait kbis": 0,
+        "attestation siret": 0
+    },
+    "detected_entities_count": 2,
+    "fields": {
+        "siret": null,
+        "iban": null,
+        "bic": null,
+        "montants_detectes": [],
+        "montant_ttc": null,
+        "montant_ht": null,
+        "tva": null,
+        "dates": [],
+        "nom_entreprise": "Facture",
+        "keywords_found": [
+            "facture"
+        ]
+    },
+    "raw_text": "Facture"
+}

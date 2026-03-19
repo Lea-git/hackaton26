@@ -1,0 +1,44 @@
+{
+    "filename": "1131w-_bNIDByiaAU.txt",
+    "type": "facture",
+    "scores": {
+        "facture": 12,
+        "devis": 2,
+        "rib": 0,
+        "extrait kbis": 0,
+        "attestation siret": 0
+    },
+    "detected_entities_count": 6,
+    "fields": {
+        "siret": null,
+        "iban": null,
+        "bic": "ANDRIEUX",
+        "montants_detectes": [
+            "1200,00",
+            "6240,00",
+            "1040,00",
+            "1500.00",
+            "1500,00",
+            "2500,00",
+            "5200.00"
+        ],
+        "montant_ttc": {
+            "label": "TTC",
+            "value": 6240.0
+        },
+        "montant_ht": {
+            "label": "HT",
+            "value": 5200.0
+        },
+        "tva": null,
+        "dates": [],
+        "nom_entreprise": "nomade",
+        "keywords_found": [
+            "facture",
+            "tva",
+            "total",
+            "banque"
+        ]
+    },
+    "raw_text": "nomade FACTURE STUOIO CRÉATIF DATE : 30 /10/ 2035 ÉCHÉANCE : 30 / 1/ 2035 FACTURE N° : 123-456-7890 ÉMETTEUR : DESTINATAIRE : 123-456-7890 M.NOA ANDRIEUX hello@reallygreatsite.com hello@reallygreatsite.com 123 Anywhere St, 123 Anywhere St, Any City ST 12345 Any City ST 12345 Description : Prix Unitaire : Quantité : Total: Identité visuelle 2500,00 EUR 1 2500.,00 EUR Rapport détaillé 1500,00 EUR 1 1500.00 EUR Formation des équipes 1200,00 EUR 1 1200,00 EUR TOTAL HT : 5200.00 EUR TVA 20% : 1040,00 EUR RÈGLEMENT : REMISE : . Par virement bancaire : TOTALTTC: 6240,00 EUR Banque Rimberio Compte 123-456-7890 En cas de retard de paiement une indemnite Ge 10% par Jour de retars que des frais de recouvrement de 40 euros seront expibles Conditions generales de vente consultables sur be site vn reslhygrestsite com"
+}

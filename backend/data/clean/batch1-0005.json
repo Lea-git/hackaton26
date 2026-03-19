@@ -1,0 +1,51 @@
+{
+    "filename": "batch1-0005.txt",
+    "type": "rib",
+    "scores": {
+        "facture": 0,
+        "devis": 0,
+        "rib": 13,
+        "extrait kbis": 0,
+        "attestation siret": 0
+    },
+    "detected_entities_count": 5,
+    "fields": {
+        "siret": null,
+        "iban": "GB71GBDG68039919194335",
+        "bic": null,
+        "montants_detectes": [
+            "59,40",
+            "23,12",
+            "27,00",
+            "61,87",
+            "25,43",
+            "18,75",
+            "725,37",
+            "797,91",
+            "3,00",
+            "72,54",
+            "279,00",
+            "11,56",
+            "2,00",
+            "558,00",
+            "1,00",
+            "56,25",
+            "37,40",
+            "54,00",
+            "34,00",
+            "613,80"
+        ],
+        "montant_ttc": null,
+        "montant_ht": null,
+        "tva": null,
+        "dates": [
+            "10/29/2016"
+        ],
+        "nom_entreprise": "Invoice",
+        "keywords_found": [
+            "iban",
+            "total"
+        ]
+    },
+    "raw_text": "Invoice no: 89969473 Date of issue: 10/29/2016 Seller: Client: Johnson-Martin Deleon, Davila and Allen 3836 Moore Ports 355 King Lake Suite 071 North Michael, MO 01844 South Haleyshire, KY 55765 Tax [d: 972-82-0713 Tax [d: 944-77-3882 IBAN: GB71GBDG68039919194335 ITEMS No. Description Qty UM Net price Net worth VAT [%] 1. Wild West Wine 2,00 each 27,00 54,00 10% 2. Press Wine 15L Fruit Cider 2,00 each 279,00 558,00 10% Apple Crusher Juice Grape Stainless Maker Grapes New 3. Wine Rack Holder Iron Art 3,00 each 18,75 56,25 10% Hanging Racks Glass Cup Stemware Shelf Mounted 2 Color 4. Rust Proof Three Rows Tool 2,00 each 11,56 23,12 10% Wine Glass Holder Simple Iron Wire Home Hanging Rack 5. VTG 1970s MCM Brown Steel 1,00 each 34,00 34,00 10% Tube Wall or Desk Mounted 12-Wine Rack Bottle Hotder SUMMARY VAT [%] Net worth VAT 10% 725,37 72,54 Total $ 725,37 $ 72,54 Gross worth 59,40 613,80 61,87 25,43 37,40 Gross worth 797,91 $797,91"
+}
