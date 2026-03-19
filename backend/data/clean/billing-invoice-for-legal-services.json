@@ -1,0 +1,25 @@
+{
+    "filename": "billing-invoice-for-legal-services.txt",
+    "type": "facture",
+    "scores": {
+        "facture": 0,
+        "devis": 0,
+        "rib": 0,
+        "extrait kbis": 0,
+        "attestation siret": 0
+    },
+    "detected_entities_count": 2,
+    "fields": {
+        "siret": null,
+        "iban": null,
+        "bic": "SOTALDUE",
+        "montants_detectes": [],
+        "montant_ttc": null,
+        "montant_ht": null,
+        "tva": null,
+        "dates": [],
+        "nom_entreprise": "INVOICE",
+        "keywords_found": []
+    },
+    "raw_text": "INVOICE cu scres mmocee P Cs eegires « au ms ue PV S Cosvus tos Legai Séroxes Aoncéred Througe Ktl mms DE > us avoue subtt n s0 racnate rs vax …s REIIEER … SOTALDUE $ 405444 Inanu you for pout Duses sr"
+}
