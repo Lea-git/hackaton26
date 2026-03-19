@@ -1,6 +1,6 @@
 {
-  "dataset": "ml_dataset",
-  "labels_file": "ml_dataset\\labels_ml.json",
+  "dataset": "C:\\Master2\\Hackathon\\validation_engine\\backend\\detection\\ml_dataset",
+  "labels_file": "C:\\Master2\\Hackathon\\validation_engine\\backend\\detection\\ml_dataset\\labels_ml.json",
   "samples_used": 120,
   "tp": 38,
   "fp": 3,

@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os
+import pickle
 from pathlib import Path
 import sys
 import time
@@ -29,6 +30,7 @@ DEFAULT_CLEAN_BUCKET = "clean-documents"
 DEFAULT_CURATED_BUCKET = "curated-documents"
 DEFAULT_CLEAN_PREFIX = "2026/demo/"
 DEFAULT_CURATED_PREFIX = "2026/demo/"
+DEFAULT_MODEL_PATH = BASE_DIR / "models" / "isolation_forest.pkl"
 
 
 class DocumentValidator:
@@ -44,6 +46,11 @@ class DocumentValidator:
         max_retries_429: int = 2,
         retry_delay_seconds: float = 1.0,
         user_agent: str = "M2-Hackathon-ValidationEngine/1.0",
+        model_path: Optional[str] = None,
+        require_frozen_model: bool = False,
+        save_frozen_model: bool = False,
+        force_retrain_model: bool = False,
+        model_version: Optional[str] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.logger = logger or logging.getLogger(self.__class__.__name__)
@@ -51,13 +58,67 @@ class DocumentValidator:
         self.request_timeout = request_timeout
         self.max_retries_429 = max_retries_429
         self.retry_delay_seconds = retry_delay_seconds
+        self.model_path = Path(model_path).expanduser() if model_path else None
+        self.model_version = model_version or (
+            self.model_path.name if self.model_path is not None else "runtime"
+        )
+        self.model_source = "runtime"
 
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": user_agent})
 
-        self.model = IsolationForest(contamination=contamination, random_state=random_state)
+        self.model = self._initialize_model(
+            baseline_ttc=baseline_ttc,
+            contamination=contamination,
+            random_state=random_state,
+            require_frozen_model=require_frozen_model,
+            save_frozen_model=save_frozen_model,
+            force_retrain_model=force_retrain_model,
+        )
+
+    @staticmethod
+    def _save_model(model: IsolationForest, model_path: Path) -> None:
+        model_path.parent.mkdir(parents=True, exist_ok=True)
+        with model_path.open("wb") as model_file:
+            pickle.dump(model, model_file)
+
+    @staticmethod
+    def _load_model(model_path: Path) -> IsolationForest:
+        with model_path.open("rb") as model_file:
+            model = pickle.load(model_file)
+        if not hasattr(model, "predict"):
+            raise TypeError("Loaded model does not expose a predict method")
+        return model
+
+    def _initialize_model(
+        self,
+        baseline_ttc: Optional[Iterable[float]],
+        contamination: float,
+        random_state: int,
+        require_frozen_model: bool,
+        save_frozen_model: bool,
+        force_retrain_model: bool,
+    ) -> IsolationForest:
+        if self.model_path is not None and self.model_path.exists() and not force_retrain_model:
+            loaded_model = self._load_model(self.model_path)
+            self.model_source = "frozen_pkl"
+            self.logger.info("Loaded frozen model from %s", self.model_path)
+            return loaded_model
+
+        if self.model_path is not None and require_frozen_model and not self.model_path.exists():
+            raise FileNotFoundError(f"Frozen model not found: {self.model_path}")
+
+        trained_model = IsolationForest(contamination=contamination, random_state=random_state)
         history = self._prepare_history(baseline_ttc, random_state=random_state)
-        self.model.fit(history)
+        trained_model.fit(history)
+        self.model_source = "runtime_trained"
+
+        if self.model_path is not None and (save_frozen_model or force_retrain_model):
+            self._save_model(trained_model, self.model_path)
+            self.model_source = "frozen_pkl_generated"
+            self.logger.info("Saved frozen model to %s", self.model_path)
+
+        return trained_model
 
     @staticmethod
     def _prepare_history(baseline_ttc: Optional[Iterable[float]], random_state: int) -> np.ndarray:
@@ -218,6 +279,11 @@ class DocumentValidator:
             "errors": [],
             "semantic": {"match": False, "score": 0, "threshold": self.semantic_threshold},
             "api": {},
+            "model": {
+                "source": self.model_source,
+                "path": str(self.model_path) if self.model_path is not None else None,
+                "version": self.model_version,
+            },
         }
         risk_score = 0
 
@@ -323,6 +389,26 @@ def analyze_file(file_path: str, validator: Optional[DocumentValidator] = None) 
     with target_path.open("r", encoding="utf-8") as file_handle:
         payload = json.load(file_handle)
     return active_validator.analyze(payload)
+
+
+def export_frozen_model(
+    model_path: str,
+    baseline_ttc: Optional[Iterable[float]] = None,
+    contamination: float = 0.05,
+    random_state: int = 42,
+) -> Dict[str, str]:
+    validator = DocumentValidator(
+        baseline_ttc=baseline_ttc,
+        contamination=contamination,
+        random_state=random_state,
+        model_path=model_path,
+        force_retrain_model=True,
+    )
+    resolved_path = str(Path(model_path).expanduser().resolve())
+    return {
+        "model_path": resolved_path,
+        "model_source": validator.model_source,
+    }
 
 
 def _read_env_bool(env_name: str, default: bool = False) -> bool:
@@ -461,13 +547,58 @@ if __name__ == "__main__":
         help="Prefix used when writing curated objects.",
     )
     parser.add_argument(
+        "--model-path",
+        default=os.getenv("VALIDATOR_MODEL_PATH", str(DEFAULT_MODEL_PATH)),
+        help="Path to a frozen IsolationForest .pkl model.",
+    )
+    parser.add_argument(
+        "--model-version",
+        default=os.getenv("VALIDATOR_MODEL_VERSION"),
+        help="Optional model version label injected in analysis metadata.",
+    )
+    parser.add_argument(
+        "--require-frozen-model",
+        action="store_true",
+        help="Fail if the frozen model path does not exist.",
+    )
+    parser.add_argument(
+        "--save-frozen-model",
+        action="store_true",
+        help="Save a .pkl model if training occurs at runtime.",
+    )
+    parser.add_argument(
+        "--force-retrain-model",
+        action="store_true",
+        help="Retrain and overwrite the frozen .pkl model at model-path.",
+    )
+    parser.add_argument(
+        "--export-frozen-model",
+        action="store_true",
+        help="Export a frozen .pkl model then exit.",
+    )
+    parser.add_argument(
         "targets",
         nargs="*",
         help="Local JSON files to validate when --mode local is used.",
     )
     args = parser.parse_args()
 
-    validator = DocumentValidator()
+    if args.export_frozen_model:
+        export_info = export_frozen_model(
+            model_path=args.model_path,
+            contamination=0.05,
+            random_state=42,
+        )
+        print(json.dumps(export_info, ensure_ascii=False, indent=2))
+        sys.exit(0)
+
+    validator = DocumentValidator(
+        model_path=args.model_path,
+        model_version=args.model_version,
+        require_frozen_model=args.require_frozen_model,
+        save_frozen_model=args.save_frozen_model,
+        force_retrain_model=args.force_retrain_model,
+    )
 
     if args.mode == "minio":
         run_summary = analyze_clean_bucket_to_curated(
