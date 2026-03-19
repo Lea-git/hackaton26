@@ -17,7 +17,14 @@ from datalake import DataLakeClient
 
 # ---------- Initialisation ----------
 app = FastAPI(title="OCR Hackathon Backend")
-client = DataLakeClient()
+_client = None
+
+
+def get_datalake_client():
+    global _client
+    if _client is None:
+        _client = DataLakeClient()
+    return _client
 
 TEMP_FOLDER = "temp"
 os.makedirs(TEMP_FOLDER, exist_ok=True)
@@ -36,8 +43,10 @@ def process_and_store_document(file_path, object_name):
     """
     import cv2
 
+    dl = get_datalake_client()
+
     # 1. Upload RAW
-    client.upload_raw(object_name, file_path)
+    dl.upload_raw(object_name, file_path)
 
     # 2. OCR
     if file_path.lower().endswith(".pdf"):
@@ -50,7 +59,7 @@ def process_and_store_document(file_path, object_name):
 
     # 3. Upload CLEAN
     clean_name = object_name.rsplit(".", 1)[0] + ".txt"
-    client.upload_clean(clean_name, cleaned)
+    dl.upload_clean(clean_name, cleaned)
 
     # 4. Extraction des champs
     data = extract_all_fields(cleaned)
@@ -70,7 +79,7 @@ def process_and_store_document(file_path, object_name):
     }
 
     curated_name = object_name.rsplit(".", 1)[0] + ".json"
-    client.upload_curated(curated_name, curated_data)
+    dl.upload_curated(curated_name, curated_data)
 
     return curated_data
 
@@ -149,7 +158,7 @@ def health_pipeline():
 
     # Stats MinIO
     try:
-        dl = DataLakeClient()
+        dl = get_datalake_client()
         result["minio"] = dl.get_stats()
     except Exception as e:
         result["minio"] = {"error": str(e)}

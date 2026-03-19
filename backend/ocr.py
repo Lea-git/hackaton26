@@ -1,4 +1,3 @@
-from datalake import DataLakeClient
 import json
 import os
 import cv2
@@ -12,7 +11,6 @@ if os.path.exists("/usr/bin/tesseract"):
 
 RAW_FOLDER = "data/raw"
 CLEAN_FOLDER = "data/clean"
-client = DataLakeClient()
 
 
 # -------------------------
@@ -284,6 +282,8 @@ def save_output(text, filename):
 # Pipeline principal
 # -------------------------
 def process_documents():
+    from datalake import DataLakeClient
+    client = DataLakeClient()
 
     for file in os.listdir(RAW_FOLDER):
 
