@@ -32,4 +32,5 @@ class Document extends Model
     {
         return $this->belongsTo(Fournisseur::class);
     }
+    
 }

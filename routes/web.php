@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Document;
+use App\Models\Fournisseur;
 use Illuminate\Support\Facades\Storage;  
 use App\Services\DataLakeClient;
 use Illuminate\Support\Facades\Log;
@@ -18,40 +19,69 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Route d'upload
+// Route d'upload MULTI-DOCUMENTS (MODIFIÉE)
 Route::post('/upload', function (Request $request) {
+    // Validation des fichiers multiples
     $request->validate([
-        'fichier' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240'
+        'documents' => 'required|array|min:1|max:10',
+        'documents.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240'
+    ], [
+        'documents.required' => 'Sélectionnez au moins un fichier',
+        'documents.max' => 'Maximum 10 fichiers à la fois',
+        'documents.*.mimes' => 'Format accepté : PDF, JPG, PNG',
+        'documents.*.max' => 'Chaque fichier doit faire moins de 10 Mo'
     ]);
 
-    $fichier = $request->file('fichier');
-    
-    // 1. Stockage local
-    $chemin = $fichier->store('documents', 'public');
-    
-    // 2. Sauvegarde en BDD
-    $document = Document::create([
-        'nom_fichier_original' => $fichier->getClientOriginalName(),
-        'chemin_stockage' => $chemin,
-        'type_document' => 'non_classe',
-        'statut_ocr' => 'en_attente',
-        'mime_type' => $fichier->getMimeType(),
-        'taille_fichier' => $fichier->getSize()
-    ]);
-    
-    // 3. Envoi vers le Data Lake (RAW zone) pour OCR
-    try {
-        $dataLakeClient = new DataLakeClient();
-        $uploaded = $dataLakeClient->uploadRaw($fichier, $fichier->getClientOriginalName());
-        
-        if ($uploaded) {
-            Log::info('Document envoyé au Data Lake pour OCR');
+    $uploadedFiles = $request->file('documents');
+    $successCount = 0;
+    $errors = [];
+
+    foreach ($uploadedFiles as $fichier) {
+        try {
+            // 1. Stockage local
+            $chemin = $fichier->store('documents', 'public');
+            
+            // 2. Sauvegarde en BDD
+            $document = Document::create([
+                'nom_fichier_original' => $fichier->getClientOriginalName(),
+                'chemin_stockage' => $chemin,
+                'type_document' => 'non_classe',
+                'statut_ocr' => 'en_attente',
+                'mime_type' => $fichier->getMimeType(),
+                'taille_fichier' => $fichier->getSize()
+            ]);
+            
+            // 3. Envoi vers le Data Lake (RAW zone) pour OCR
+            try {
+                $dataLakeClient = new DataLakeClient();
+                $uploaded = $dataLakeClient->uploadRaw($fichier, $fichier->getClientOriginalName());
+                
+                if ($uploaded) {
+                    Log::info('Document envoyé au Data Lake: ' . $fichier->getClientOriginalName());
+                }
+            } catch (\Exception $e) {
+                Log::error('Erreur envoi Data Lake: ' . $e->getMessage());
+                // On continue même si l'envoi au Data Lake échoue
+            }
+            
+            $successCount++;
+            
+        } catch (\Exception $e) {
+            $errors[] = $fichier->getClientOriginalName() . ': ' . $e->getMessage();
         }
-    } catch (\Exception $e) {
-        Log::error('Erreur envoi Data Lake: ' . $e->getMessage());
     }
 
-    return redirect('/user/dashboard')->with('success', 'Fichier uploadé avec succès (en attente de traitement OCR)');
+    // Message de retour personnalisé
+    if ($successCount > 0) {
+        $message = $successCount . ' fichier(s) uploadé(s) avec succès';
+        if (!empty($errors)) {
+            $message .= ' (' . count($errors) . ' échec(s))';
+        }
+        return redirect('/user/dashboard')->with('success', $message);
+    } else {
+        return redirect('/user/dashboard')->with('error', 'Aucun fichier n\'a pu être uploadé');
+    }
+    
 })->name('upload');
 
 // Routes user
@@ -69,7 +99,9 @@ Route::prefix('user')->group(function () {
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             
-            if (Auth::user()->role === 'commercial') {
+            $user = Auth::user();
+            
+            if ($user->role === 'commercial') {
                 return redirect('/user/dashboard');
             }
             return redirect('/');
@@ -96,15 +128,52 @@ Route::prefix('user')->group(function () {
             $documentsCurated = $dataLakeClient->getMockDocuments();
         }
         
-        // 3. Données de l'étudiant 2
+        // 3. Données de l'étudiant 2 (OCR) avec mise à jour des fournisseurs
+        $documentsOCR = [];
         try {
-            $jsonContent = Storage::disk('public')->get('test.json');
-            $documentsOCR = json_decode($jsonContent, true) ?? [];
+            $jsonContent = Storage::disk('public')->get('ocr_data.json');
+            $rawData = json_decode($jsonContent, true) ?? [];
+            
+            // Normaliser en tableau
+            if (isset($rawData[0])) {
+                $documentsOCR = $rawData;
+            } else {
+                $documentsOCR = [$rawData];
+            }
+            
+            // Mise à jour automatique des fournisseurs
+            foreach ($documentsOCR as $ocrData) {
+                $nomEntreprise = $ocrData['fields']['nom_entreprise'] ?? 
+                                 $ocrData['vendor_name'] ?? 
+                                 null;
+                
+                $siret = $ocrData['fields']['siret'] ?? 
+                        $ocrData['siret'] ?? 
+                        null;
+                
+                $siren = $siret ? substr($siret, 0, 9) : null;
+                
+                if ($nomEntreprise) {
+                    Fournisseur::firstOrCreate(
+                        ['nom' => $nomEntreprise],
+                        [
+                            'siren' => $siren,
+                            'siret' => $siret,
+                            'statut' => 'actif'
+                        ]
+                    );
+                }
+            }
+            
         } catch (\Exception $e) {
+            Log::warning('Erreur chargement OCR: ' . $e->getMessage());
             $documentsOCR = [];
         }
         
-        // 4. STATISTIQUES DYNAMIQUES
+        // 4. Récupérer tous les fournisseurs
+        $fournisseurs = Fournisseur::withCount('documents')->get();
+        
+        // 5. STATISTIQUES DYNAMIQUES
         $totalDocuments = Document::count();
         $documentsMois = Document::whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
@@ -116,6 +185,7 @@ Route::prefix('user')->group(function () {
             'documentsLocaux' => $documentsLocaux,
             'documentsCurated' => $documentsCurated,
             'documentsOCR' => $documentsOCR,
+            'fournisseurs' => $fournisseurs,
             'totalDocuments' => $totalDocuments,
             'documentsMois' => $documentsMois,
             'enAttente' => $enAttente,
@@ -139,7 +209,9 @@ Route::prefix('admin')->group(function () {
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             
-            if (Auth::user()->role === 'conformite') {
+            $user = Auth::user();
+            
+            if ($user->role === 'conformite') {
                 return redirect('/admin/dashboard');
             }
             return redirect('/');

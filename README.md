@@ -2,7 +2,7 @@
 
 ## Présentation du projet
 
-DocuHack est une plateforme développée lors d'un hackathon permettant l'upload, la classification, 
+DocuHack est une plateforme développée lors de notre hackathon permettant l'upload, la classification, 
 l'extraction et la validation de documents administratifs (factures, devis, attestations). 
 Le projet suit une architecture Medallion (Bronze, Silver, Gold) et intègre plusieurs services interconnectés.
 
@@ -16,8 +16,7 @@ Développement de l'interface utilisateur et des points d'entrée API pour :
 
 ## Stack technique
 
-- **Framework backend** : Laravel 12
-- **Framework frontend** : Vue.js 3 avec Inertia
+- **Framework frontend et backend** : Laravel 12
 - **Base de données** : SQLite
 - **Stockage objet** : MinIO (compatible S3)
 - **Client S3** : AWS SDK PHP + league/flysystem-aws-s3-v3
@@ -154,7 +153,7 @@ MINIO_ACCESS_KEY=admin
 MINIO_SECRET_KEY=admin1234
 ```
 
-## Identificateurs de test
+## Identifications de test
 
 Deux profils sont disponibles après migration :
 
@@ -279,9 +278,3 @@ docker-compose up -d --build
 docker-compose exec app php artisan migrate
 docker-compose exec app php artisan storage:link
 ```
-
-## Limitations connues
-
-- Les statistiques de montant total sont actuellement simulées en attendant l'intégration des données de l'étudiant 5
-- Les documents invalides ne sont pas encore isolés dans un bucket distinct
-- L'API de l'étudiant 2 n'est pas encore connectée (utilisation d'un fichier JSON statique)

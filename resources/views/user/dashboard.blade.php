@@ -284,7 +284,7 @@
 </head>
 <body>
     <nav class="navbar">
-        <div class="logo">📊Gestion des Factures</div>
+        <div class="logo">Gestion des Factures</div>
         <div class="user-info">
             <span>👤 user@docuhack.com</span>
             <a href="/user/login" class="logout">Déconnexion</a>
@@ -299,19 +299,21 @@
             </div>
         @endif
 
+
         <!-- Upload Section -->
-        <div class="upload-section">
-            <h3>⬆️ Uploader un document</h3>
-            <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4 flex-wrap">
-                @csrf
-                <div class="flex-1 min-w-[300px]">
-                    <input type="file" name="fichier" id="fichier-simple" accept=".pdf,.jpg,.jpeg,.png" required>
-                </div>
-                <button type="submit" class="whitespace-nowrap">
-                    Uploader
-                </button>
-            </form>
+<div class="upload-section">
+    <h3>⬆️ Uploader des documents</h3>
+    <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4 flex-wrap">
+        @csrf
+        <div class="flex-1 min-w-[300px]">
+            <input type="file" name="documents[]" id="documents" multiple accept=".pdf,.jpg,.jpeg,.png" class="w-full p-2 border border-gray-300 rounded" required>
+            <p class="text-xs text-gray-400 mt-1">Vous pouvez sélectionner plusieurs fichiers</p>
         </div>
+        <button type="submit" class="whitespace-nowrap bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+            Uploader
+        </button>
+    </form>
+</div>
 
         <!-- Statistiques DYNAMIQUES -->
         <div class="stats-grid">
@@ -333,7 +335,7 @@
             </div>
         </div>
 
-         <!-- Documents récents -->
+        <!-- Documents récents -->
         <div class="section-card section-recent">
             <div class="section-title">
                 <span class="section-title-icon">📄</span>
@@ -341,36 +343,35 @@
             </div>
             <div class="table-wrapper">
                 <table>
-                   <thead class="bg-gray-50">
-    <tr>
-        <th class="px-6 py-3 text-left">Nom du fichier</th>
-        <th class="px-6 py-3 text-left">Type</th>
-        <th class="px-6 py-3 text-left">Date d'upload</th>
-        <th class="px-6 py-3 text-left">Statut OCR</th>
-        <th class="px-6 py-3 text-left">Visualiser</th> 
-    </tr>
-</thead>
-<tbody>
-    @forelse($documentsLocaux as $doc)
-    <tr class="border-t">
-        <td class="px-6 py-4">{{ $doc->nom_fichier_original }}</td>
-        <td class="px-6 py-4">{{ $doc->type_document }}</td>
-        <td class="px-6 py-4">{{ $doc->created_at->format('d/m/Y H:i') }}</td>
-        <td class="px-6 py-4">
-            <span class="badge {{ $doc->statut_ocr === 'traite' ? 'badge-success' : 'badge-warning' }}">
-                {{ $doc->statut_ocr }}
-            </span>
-        </td>
-        <td class="px-6 py-4">
-            <a href="{{ asset('storage/' . $doc->chemin_stockage) }}" target="_blank" class="text-blue-600 hover:underline">
-                Voir le fichier
-            </a>
-        </td> 
-    </tr>
-    
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left">Nom du fichier</th>
+                            <th class="px-6 py-3 text-left">Type</th>
+                            <th class="px-6 py-3 text-left">Date d'upload</th>
+                            <th class="px-6 py-3 text-left">Statut OCR</th>
+                            <th class="px-6 py-3 text-left">Visualiser</th> 
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($documentsLocaux as $doc)
+                        <tr class="border-t">
+                            <td class="px-6 py-4">{{ $doc->nom_fichier_original }}</td>
+                            <td class="px-6 py-4">{{ $doc->type_document }}</td>
+                            <td class="px-6 py-4">{{ $doc->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="px-6 py-4">
+                                <span class="badge {{ $doc->statut_ocr === 'traite' ? 'badge-success' : 'badge-warning' }}">
+                                    {{ $doc->statut_ocr }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <a href="{{ asset('storage/' . $doc->chemin_stockage) }}" target="_blank" class="text-blue-600 hover:underline">
+                                    Voir le fichier
+                                </a>
+                            </td> 
+                        </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center py-8 text-gray-500">
+                            <td colspan="5" class="text-center py-8 text-gray-500">
                                 Aucun document pour le moment
                             </td>
                         </tr>
@@ -387,30 +388,50 @@
                 Documents extraits par OCR
             </div>
             <div class="table-wrapper">
-                <table>
-                    <thead>
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th>Type</th>
-                            <th>SIRET</th>
-                            <th>TVA</th>
-                            <th>Date</th>
-                            <th>Montant HT</th>
-                            <th>Montant TTC</th>
+                            <th class="px-6 py-3 text-left">Fichier</th>
+                            <th class="px-6 py-3 text-left">Type</th>
+                            <th class="px-6 py-3 text-left">Entreprise</th>
+                            <th class="px-6 py-3 text-left">BIC</th>
+                            <th class="px-6 py-3 text-left">Montant HT</th>
+                            <th class="px-6 py-3 text-left">Montant TTC</th>
+                            <th class="px-6 py-3 text-left">Confiance</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($documentsOCR as $doc)
-                        <tr>
-                            <td><span class="badge badge-info">{{ $doc['document_type'] ?? 'N/A' }}</span></td>
-                            <td>{{ $doc['siret'] ?? 'N/A' }}</td>
-                            <td>{{ $doc['tva'] ?? 'N/A' }}</td>
-                            <td>{{ $doc['date'] ?? 'N/A' }}</td>
-                            <td class="montant">{{ isset($doc['montant_ht']) ? number_format($doc['montant_ht'], 2) : 'N/A' }} €</td>
-                            <td class="montant">{{ isset($doc['montant_ttc']) ? number_format($doc['montant_ttc'], 2) : 'N/A' }} €</td>
+                        @php
+                            $type = $doc['type'] ?? $doc['document_type'] ?? 'N/A';
+                            $entreprise = $doc['fields']['nom_entreprise'] ?? 'N/A';
+                            $bic = $doc['fields']['bic'] ?? 'N/A';
+                            $montantHt = $doc['fields']['montant_ht']['value'] ?? $doc['montant_ht'] ?? null;
+                            $montantTtc = $doc['fields']['montant_ttc']['value'] ?? $doc['montant_ttc'] ?? null;
+                            $filename = $doc['filename'] ?? 'N/A';
+                            $confiance = isset($doc['scores']) ? max($doc['scores']) : 100;
+                        @endphp
+                        <tr class="border-t hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm">{{ $filename }}</td>
+                            <td class="px-6 py-4">
+                                <span class="badge badge-info">{{ $type }}</span>
+                            </td>
+                            <td class="px-6 py-4">{{ $entreprise }}</td>
+                            <td class="px-6 py-4 font-mono text-sm">{{ $bic }}</td>
+                            <td class="px-6 py-4 montant">{{ $montantHt ? number_format($montantHt, 2) : 'N/A' }} €</td>
+                            <td class="px-6 py-4 montant">{{ $montantTtc ? number_format($montantTtc, 2) : 'N/A' }} €</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                        <div class="bg-blue-600 h-2 rounded-full" style="width: {{ $confiance }}%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600">{{ $confiance }}%</span>
+                                </div>
+                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center py-8 text-gray-500">
+                            <td colspan="7" class="px-6 py-8 text-center text-gray-500">
                                 Aucune donnée OCR disponible
                             </td>
                         </tr>
@@ -419,8 +440,6 @@
                 </table>
             </div>
         </div>
-
-       
 
         <!-- Documents Data Lake -->
         <div class="section-card section-datalake">
@@ -474,7 +493,7 @@
             </div>
         </div>
 
-        <!-- Fournisseurs -->
+        <!-- Fournisseurs dynamique -->
         <div class="section-card section-fournisseurs">
             <div class="section-title">
                 <span class="section-title-icon">🏭</span>
@@ -484,49 +503,27 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Fournisseur</th>
+                            <th>Nom</th>
                             <th>SIREN</th>
-                            <th>Total facturé</th>
-                            <th>Dernière facture</th>
-                            <th>Statut</th>
+                            <th>SIRET</th>
+                            <th>Documents</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @forelse($fournisseurs as $f)
                         <tr>
-                            <td><strong>SARL DUPONT</strong><br><small class="text-gray-500">Bâtiment</small></td>
-                            <td>123 456 789</td>
-                            <td class="montant">12 500 €</td>
-                            <td>15/03/2026</td>
-                            <td><span class="badge badge-success">À jour</span></td>
+                            <td><strong>{{ $f->nom }}</strong></td>
+                            <td>{{ $f->siren ?? 'N/A' }}</td>
+                            <td>{{ $f->siret ?? 'N/A' }}</td>
+                            <td>{{ $f->documents_count ?? 0 }}</td>
                         </tr>
+                        @empty
                         <tr>
-                            <td><strong>SAS MARTIN</strong><br><small class="text-gray-500">Informatique</small></td>
-                            <td>987 654 321</td>
-                            <td class="montant">8 750 €</td>
-                            <td>14/03/2026</td>
-                            <td><span class="badge badge-success">À jour</span></td>
+                            <td colspan="4" class="text-center py-4 text-gray-500">
+                                Aucun fournisseur pour le moment
+                            </td>
                         </tr>
-                        <tr>
-                            <td><strong>EURL BERNARD</strong><br><small class="text-gray-500">Conseil</small></td>
-                            <td>456 789 123</td>
-                            <td class="montant">22 300 €</td>
-                            <td>12/03/2026</td>
-                            <td><span class="badge badge-warning">En retard</span></td>
-                        </tr>
-                        <tr>
-                            <td><strong>SARL PETIT</strong><br><small class="text-gray-500">Transport</small></td>
-                            <td>789 123 456</td>
-                            <td class="montant">5 200 €</td>
-                            <td>10/03/2026</td>
-                            <td><span class="badge badge-success">À jour</span></td>
-                        </tr>
-                        <tr>
-                            <td><strong>SAS DURAND</strong><br><small class="text-gray-500">Formation</small></td>
-                            <td>321 654 987</td>
-                            <td class="montant">15 800 €</td>
-                            <td>08/03/2026</td>
-                            <td><span class="badge badge-success">À jour</span></td>
-                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
