@@ -1,3 +1,5 @@
+from datalake import client
+from fastapi import FastAPI, UploadFile, File
 import json
 import os
 import cv2
@@ -10,6 +12,7 @@ pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tessera
 
 RAW_FOLDER = "data/raw"
 CLEAN_FOLDER = "data/clean"
+client = DataLakeClient()
 
 
 # -------------------------
@@ -289,18 +292,60 @@ def process_documents():
         print(f"Processing : {file}")
 
         try:
+            # -------------------------
+            # 1️⃣ UPLOAD RAW
+            # -------------------------
+            client.upload_raw(file, path)
 
+            # -------------------------
+            # 2️⃣ OCR
+            # -------------------------
             if file.lower().endswith(".pdf"):
                 text = extract_text_from_pdf(path)
             else:
                 image = cv2.imread(path)
                 text = extract_text_from_image(image)
 
-            output_name = file.split(".")[0] + ".txt"
+            cleaned = clean_text(text)
 
-            save_output(text, output_name)
+            # -------------------------
+            # 3️⃣ UPLOAD CLEAN
+            # -------------------------
+            clean_name = file.rsplit(".", 1)[0] + ".txt"
+            client.upload_clean(clean_name, cleaned)
 
-            print("✅ Terminé\n")
+            # -------------------------
+            # 4️⃣ EXTRACTION
+            # -------------------------
+            data = extract_all_fields(cleaned)
+
+            # -------------------------
+            # 5️⃣ CLASSIFICATION
+            # -------------------------
+            doc_type, score = infer_document_type(data)
+
+            # -------------------------
+            # 6️⃣ CURATED JSON
+            # -------------------------
+            curated_data = {
+                "document": {
+                    "name": file,
+                    "type": doc_type
+                },
+                "extraction": data,
+                "scores": score,
+                "detected_entities_count": len([v for v in data.values() if v]),
+                "pipeline": ["raw", "clean", "curated"]
+            }
+
+            curated_name = file.rsplit(".", 1)[0] + ".json"
+
+            # -------------------------
+            # 7️⃣ UPLOAD CURATED
+            # -------------------------
+            client.upload_curated(curated_name, curated_data)
+
+            print("✅ Envoyé dans le DataLake\n")
 
         except Exception as e:
             print(f"❌ Erreur sur {file} : {e}\n")
