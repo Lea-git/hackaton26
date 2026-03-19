@@ -1,6 +1,7 @@
 import json
 import os
 import cv2
+import numpy as np
 import pytesseract
 import re
 from pdf2image import convert_from_path
@@ -60,10 +61,8 @@ def extract_text_from_pdf(pdf_path):
     full_text = ""
 
     for page in pages:
-        image = cv2.cvtColor(
-            cv2.imread(page.filename),
-            cv2.COLOR_BGR2RGB
-        )
+        image = np.array(page)
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         full_text += extract_text_from_image(image) + "\n"
 
     return full_text

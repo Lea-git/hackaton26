@@ -27,6 +27,7 @@ def validate_documents(**context):
         siret_attendu = sd["entities"].get("siret_attendu", "")
         siret_affiche = sd["entities"].get("siret", "")
         if siret_attendu and siret_affiche:
+            # Mode mock : comparer SIRET attendu vs affiché
             if siret_attendu[:9] != siret_affiche[:9]:
                 validation_results.append({
                     "rule": "siren_consistency",
@@ -39,6 +40,14 @@ def validate_documents(**context):
                     "passed": True,
                     "message": "SIREN cohérent",
                 })
+        elif not siret_attendu and siret_affiche:
+            # Mode réel : vérifier le format SIRET (14 chiffres)
+            is_valid_format = len(siret_affiche) == 14 and siret_affiche.isdigit()
+            validation_results.append({
+                "rule": "siret_format",
+                "passed": is_valid_format,
+                "message": f"SIRET {'valide' if is_valid_format else 'invalide'}: {siret_affiche}",
+            })
 
         # Règle 2 : TVA (HT × 1.20 ≈ TTC)
         montant_ht = sd["financials"].get("montant_ht", 0)

@@ -133,6 +133,7 @@ services:
       MINIO_SECURE: "false"
       LARAVEL_API_URL: "http://frontend:80/api"
       GROUND_TRUTH_PATH: "/opt/airflow/backend/output/ground_truth.json"
+      OCR_MODE: "real"
     entrypoint: /bin/bash
     command:
       - -c

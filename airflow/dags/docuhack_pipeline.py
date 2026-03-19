@@ -1,9 +1,10 @@
 """
 docuhack_pipeline.py — DAG Airflow pour le pipeline DocuHack.
 
-Chaîne : scan_raw → ingest → mock_ocr → ner → validate → [populate_crm, populate_conformite]
+Chaîne : scan_raw → ingest → ocr_extract → ner → validate → [populate_crm, populate_conformite]
 """
 
+import os
 import sys
 import logging
 from datetime import datetime, timedelta
@@ -16,11 +17,18 @@ sys.path.insert(0, "/opt/airflow")
 sys.path.insert(0, "/opt/airflow/backend")
 
 from docuhack_tasks.ingest import scan_raw_zone, ingest_documents
-from docuhack_tasks.ocr_mock import mock_ocr
 from docuhack_tasks.ner_structure import ner_structuration
 from docuhack_tasks.validate import validate_documents
 from docuhack_tasks.populate_crm import populate_crm
 from docuhack_tasks.populate_conformite import populate_conformite
+
+# OCR mode switch
+OCR_MODE = os.getenv("OCR_MODE", "real")
+
+if OCR_MODE == "mock":
+    from docuhack_tasks.ocr_mock import mock_ocr as ocr_callable
+else:
+    from docuhack_tasks.ocr_real import real_ocr as ocr_callable
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +89,8 @@ with DAG(
     )
 
     ocr = PythonOperator(
-        task_id="mock_ocr",
-        python_callable=mock_ocr,
+        task_id="ocr_extract",
+        python_callable=ocr_callable,
         provide_context=True,
     )
 

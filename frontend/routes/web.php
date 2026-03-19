@@ -4,7 +4,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Document;
-use Illuminate\Support\Facades\Storage;  
+use App\Models\Extraction;
+use App\Models\Alerte;
+use Illuminate\Support\Facades\Storage;
 use App\Services\DataLakeClient;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -100,13 +102,24 @@ Route::prefix('commercial')->group(function () {
             $documentsCurated = $dataLakeClient->getMockDocuments();
         }
         
-        // 3. Données de l'étudiant 2
-        try {
-            $jsonContent = Storage::disk('public')->get('test.json');
-            $documentsOCR = json_decode($jsonContent, true) ?? [];
-        } catch (\Exception $e) {
-            $documentsOCR = [];
-        }
+        // 3. Documents extraits par OCR (depuis la base de données)
+        $documentsOCR = Extraction::with('document')
+            ->latest()
+            ->take(20)
+            ->get()
+            ->map(function ($extraction) {
+                $donnees = $extraction->donnees_completes ?? [];
+                return [
+                    'document_type' => $donnees['document_type'] ?? $extraction->document->type_document ?? 'N/A',
+                    'siret'         => $extraction->siret ?? ($donnees['entities']['siret'] ?? 'N/A'),
+                    'tva'           => $extraction->taux_tva ?? ($donnees['financials']['tva'] ?? 'N/A'),
+                    'date'          => $extraction->date_emission ?? ($donnees['entities']['dates'][0] ?? 'N/A'),
+                    'montant_ht'    => $extraction->montant_ht ?? ($donnees['financials']['montant_ht'] ?? 0),
+                    'montant_ttc'   => $extraction->montant_ttc ?? ($donnees['financials']['montant_ttc'] ?? 0),
+                    'nom_fichier'   => $extraction->document->nom_fichier_original ?? '',
+                ];
+            })
+            ->toArray();
         
         // 4. STATISTIQUES DYNAMIQUES
         $totalDocuments = Document::count();
@@ -154,40 +167,58 @@ Route::prefix('conformite')->group(function () {
         ]);
     });
     
-    // DASHBOARD CONFORMITÉ DYNAMIQUE (adapté pour l'étudiant 5)
+    // DASHBOARD CONFORMITÉ DYNAMIQUE
     Route::get('/dashboard', function () {
-        // Récupère les documents depuis le Data Lake (curated zone)
-        $dataLakeClient = new DataLakeClient();
-        try {
-            $documentsCurated = $dataLakeClient->getCuratedDocuments();
-            if (empty($documentsCurated)) {
-                $documentsCurated = $dataLakeClient->getMockDocuments();
+        // 1. Documents traités : jointure Document + Extraction
+        $documents = Document::with(['extraction', 'fournisseur'])
+            ->where('statut_ocr', 'traite')
+            ->latest()
+            ->take(50)
+            ->get();
+
+        // 2. Alertes non résolues indexées par document_id
+        $alertes = Alerte::where('resolue', false)
+            ->latest('date_detection')
+            ->get()
+            ->keyBy(function ($alerte) {
+                $ids = $alerte->documents_concerenes ?? [];
+                return count($ids) > 0 ? $ids[0] : null;
+            });
+
+        // 3. Construire le tableau unifié pour la vue
+        $documentsAdaptes = $documents->map(function ($doc) use ($alertes) {
+            $extraction = $doc->extraction;
+            $donnees    = $extraction ? ($extraction->donnees_completes ?? []) : [];
+            $alerte     = $alertes->get($doc->id);
+
+            $anomalies = [];
+            if ($alerte) {
+                $details   = $alerte->details ?? [];
+                $anomalies = $details['anomalies'] ?? [];
+            } elseif (!empty($donnees['validation']['anomalies'])) {
+                $anomalies = $donnees['validation']['anomalies'];
             }
-        } catch (\Exception $e) {
-            $documentsCurated = $dataLakeClient->getMockDocuments();
-        }
-        
-        // Transforme les données de l'étudiant 5 au format attendu par le dashboard
-        $documentsAdaptes = [];
-        foreach ($documentsCurated as $doc) {
-            // Adapte le format selon la structure de l'étudiant 5
-            $documentsAdaptes[] = [
-                'document_id' => $doc['document_id'] ?? ($doc['metadata']['document_type'] ?? 'N/A'),
-                'document_type' => $doc['document_type'] ?? ($doc['metadata']['document_type'] ?? 'N/A'),
-                'fournisseur' => $doc['fournisseur'] ?? ($doc['metadata']['api_company_name'] ?? $doc['metadata']['input_vendor_name'] ?? 'Inconnu'),
-                'siret' => $doc['siret'] ?? 'N/A',
-                'montant_ttc' => $doc['montant_ttc'] ?? 0,
-                'coherence_ok' => ($doc['status'] ?? 'INVALID') === 'VALID',
-                'anomalies' => $doc['anomalies'] ?? ($doc['metadata']['errors'] ?? [])
+
+            $coherenceOk = empty($anomalies) && ($donnees['validation']['is_valid'] ?? true);
+
+            return [
+                'document_id'  => $doc->nom_fichier_original ?? $doc->id,
+                'document_type'=> $donnees['document_type'] ?? $doc->type_document ?? 'inconnu',
+                'fournisseur'  => $doc->fournisseur->nom ?? $extraction->nom_fournisseur ?? ($donnees['entities']['entreprise'] ?? 'Inconnu'),
+                'siret'        => $extraction->siret ?? ($donnees['entities']['siret'] ?? 'N/A'),
+                'montant_ttc'  => $extraction->montant_ttc ?? ($donnees['financials']['montant_ttc'] ?? 0),
+                'coherence_ok' => $coherenceOk,
+                'anomalies'    => $anomalies,
+                'date_emission'=> $alerte ? $alerte->date_detection?->format('d/m/Y') : null,
             ];
-        }
-        
-        // Calcule les stats
-        $totalDocs = count($documentsAdaptes);
-        $conformes = 0;
+        })->toArray();
+
+        // 4. Stats
+        $totalDocs     = count($documentsAdaptes);
+        $conformes     = 0;
         $alertesRouges = 0;
         $alertesOranges = 0;
-        
+
         foreach ($documentsAdaptes as $doc) {
             if ($doc['coherence_ok']) {
                 $conformes++;
@@ -200,13 +231,13 @@ Route::prefix('conformite')->group(function () {
                 }
             }
         }
-        
+
         return view('conformite.dashboard', [
             'documentsCurated' => $documentsAdaptes,
-            'totalDocs' => $totalDocs,
-            'conformes' => $conformes,
-            'alertesRouges' => $alertesRouges,
-            'alertesOranges' => $alertesOranges
+            'totalDocs'        => $totalDocs,
+            'conformes'        => $conformes,
+            'alertesRouges'    => $alertesRouges,
+            'alertesOranges'   => $alertesOranges,
         ]);
     })->name('conformite.dashboard');
 });
