@@ -3,3 +3,6 @@ uvicorn
 requests
 minio
 python-dotenv
+opencv-python-headless
+pytesseract
+pdf2image

@@ -1,0 +1,36 @@
+{
+    "filename": "batch1-1008.txt",
+    "type": "rib",
+    "scores": {
+        "facture": 0,
+        "devis": 0,
+        "rib": 13,
+        "extrait kbis": 0,
+        "attestation siret": 0
+    },
+    "detected_entities_count": 5,
+    "fields": {
+        "siret": null,
+        "iban": "GB88UACG16491215528907",
+        "bic": null,
+        "montants_detectes": [
+            "18,84",
+            "4,71",
+            "4,00",
+            "20,72",
+            "1,88"
+        ],
+        "montant_ttc": null,
+        "montant_ht": null,
+        "tva": null,
+        "dates": [
+            "09/01/2018"
+        ],
+        "nom_entreprise": "Invoice",
+        "keywords_found": [
+            "iban",
+            "total"
+        ]
+    },
+    "raw_text": "Invoice no: 26388025 Date of issue: 09/01/2018 Seller: Client: Green, Sanchez and Shannon Robertson-Davis 10056 Wright Mission Suite 229 175 Bobby inlet Coleside, CO 49749 Mooremouth, WI 38635 Tax ld: 992-75-0742 Tax Id: 923-92-7597 IBAN: GB88UACG16491215528907 ITEMS No. Description Qty UM Net price Net worth VAT [%] Gross worth 1. 14 Colors Women Spaghetti 4,00 each 4,71 18,84 10% 20,72 Strap Bodycon Mini Dress Sexy Party Club Wear Dresses SUMMARY VAT [%] Net worth VAT Gross worth 10% 18,84 1,88 20,72 Total s 18,84 $ 1,88 $ 20,72"
+}
