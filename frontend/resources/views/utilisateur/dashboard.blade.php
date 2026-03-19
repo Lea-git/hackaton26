@@ -301,27 +301,30 @@
 
         <!-- Upload Section -->
         <div class="upload-section">
-            <h3>⬆️ Uploader des documents</h3>
+            <h3>⬆️ Uploader des documents <span style="font-size:0.85rem;font-weight:400;color:#6b7280;">(multi-fichiers supporté)</span></h3>
+            @if(session('success'))
+                <div style="margin-bottom:0.75rem;color:#065f46;background:#d1fae5;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;font-weight:500;">
+                    ✓ {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div style="margin-bottom:0.75rem;color:#991b1b;background:#fee2e2;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;font-weight:500;">
+                    ✗ {{ session('error') }}
+                </div>
+            @endif
             <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4 flex-wrap">
                 @csrf
                 <div class="flex-1 min-w-[300px]">
-                    <input type="file" name="documents[]" id="fichier-simple" accept=".pdf,.jpg,.jpeg,.png" multiple required>
-                    <small style="color:#6b7280;font-size:0.75rem;">PDF, JPG, PNG — max 10 fichiers, 10 Mo chacun</small>
+                    <input type="file" name="documents[]" id="fichier-simple" accept=".pdf,.jpg,.jpeg,.png" multiple required
+                           style="display:block;width:100%;padding:0.5rem;border:2px dashed #d1d5db;border-radius:8px;background:#f9fafb;cursor:pointer;">
+                    <small style="color:#6b7280;font-size:0.75rem;margin-top:0.25rem;display:block;">
+                        📎 PDF, JPG, PNG — jusqu'à 10 fichiers simultanément, 10 Mo max chacun
+                    </small>
                 </div>
                 <button type="submit" class="whitespace-nowrap">
                     Uploader
                 </button>
             </form>
-            @if(session('success'))
-                <div style="margin-top:0.75rem;color:#065f46;background:#d1fae5;padding:0.5rem 1rem;border-radius:8px;font-size:0.875rem;">
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div style="margin-top:0.75rem;color:#991b1b;background:#fee2e2;padding:0.5rem 1rem;border-radius:8px;font-size:0.875rem;">
-                    {{ session('error') }}
-                </div>
-            @endif
         </div>
 
         <!-- Statistiques DYNAMIQUES -->
@@ -413,7 +416,13 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{{ asset('storage/' . $doc->chemin_stockage) }}" target="_blank" style="color:#3b82f6;text-decoration:underline;font-size:0.875rem;">
+                                @php
+                                    $chemin = $doc->chemin_stockage ?? '';
+                                    $url = str_starts_with($chemin, 'raw-documents/')
+                                        ? 'http://localhost:9000/' . $chemin
+                                        : asset('storage/' . $chemin);
+                                @endphp
+                                <a href="{{ $url }}" target="_blank" style="color:#3b82f6;text-decoration:underline;font-size:0.875rem;">
                                     Voir le fichier
                                 </a>
                             </td>
