@@ -152,12 +152,24 @@
             border: 1px solid rgba(255,255,255,0.2);
         }
         .upload-section input[type="file"] {
-            background: white;
-            border: none;
-            border-radius: 10px;
-            padding: 0.75rem;
+            display: block;
             width: 100%;
+            padding: 0.75rem;
+            background: white;
+            border: 2px dashed #a5b4fc;
+            border-radius: 10px;
             color: #1f2937;
+            cursor: pointer;
+        }
+        .upload-section input[type="file"]:hover {
+            border-color: #667eea;
+            background: #f5f3ff;
+        }
+        #fichier-count {
+            margin-top: 0.4rem;
+            font-size: 0.8rem;
+            color: #4f46e5;
+            font-weight: 500;
         }
         .upload-section button {
             background: white;
@@ -315,16 +327,30 @@
             <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4 flex-wrap">
                 @csrf
                 <div class="flex-1 min-w-[300px]">
-                    <input type="file" name="documents[]" id="fichier-simple" accept=".pdf,.jpg,.jpeg,.png" multiple required
-                           style="display:block;width:100%;padding:0.5rem;border:2px dashed #d1d5db;border-radius:8px;background:#f9fafb;cursor:pointer;">
-                    <small style="color:#6b7280;font-size:0.75rem;margin-top:0.25rem;display:block;">
-                        📎 PDF, JPG, PNG — jusqu'à 10 fichiers simultanément, 10 Mo max chacun
-                    </small>
+                    <label style="display:block;font-size:0.85rem;color:white;margin-bottom:0.35rem;font-weight:500;">
+                        📎 Sélectionner un ou plusieurs fichiers (PDF, JPG, PNG)
+                    </label>
+                    <input type="file" name="documents[]" id="fichier-simple"
+                           accept=".pdf,.jpg,.jpeg,.png" multiple required>
+                    <div id="fichier-count">Aucun fichier sélectionné</div>
                 </div>
                 <button type="submit" class="whitespace-nowrap">
                     Uploader
                 </button>
             </form>
+            <script>
+                document.getElementById('fichier-simple').addEventListener('change', function() {
+                    const count = this.files.length;
+                    const el = document.getElementById('fichier-count');
+                    if (count === 0) {
+                        el.textContent = 'Aucun fichier sélectionné';
+                    } else if (count === 1) {
+                        el.textContent = '✓ 1 fichier sélectionné : ' + this.files[0].name;
+                    } else {
+                        el.textContent = '✓ ' + count + ' fichiers sélectionnés';
+                    }
+                });
+            </script>
         </div>
 
         <!-- Statistiques DYNAMIQUES -->
