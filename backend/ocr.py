@@ -84,8 +84,14 @@ def extract_text_from_pdf(pdf_path):
 # Extraction MAXIMALE
 # -------------------------
 def _parse_amount(raw):
-    """Convertit une chaîne montant (ex: '8 400,00' ou '8.400,00') en float."""
-    # Supprimer les séparateurs de milliers (espaces ou points avant la virgule)
+    """Convertit une chaîne montant en float.
+    Gère le format français (1 234,56 / 1.234,56) ET anglais (1,234.56).
+    """
+    raw = raw.strip()
+    # Format anglais : 1,234.56 (virgule=milliers, point=décimale)
+    if re.match(r'^\d{1,3}(?:,\d{3})+\.\d{2}$', raw):
+        return float(raw.replace(',', ''))
+    # Format français : supprimer séparateurs de milliers (espaces ou points)
     raw = re.sub(r'[\s\.](?=\d{3}(?:[,\.]\d{2}|$))', '', raw)
     raw = raw.replace(",", ".")
     try:
@@ -95,8 +101,8 @@ def _parse_amount(raw):
 
 
 def extract_amount_with_label(patterns, text):
-    # Montant : chiffres avec séparateurs de milliers optionnels + décimales
-    _amt = r'(\d[\d\s\.]*[,\.]\d{2})'
+    # Montant : gère format français (1 234,56) ET anglais (1,234.56)
+    _amt = r'(\d[\d\s\.,]*[,\.]\d{2})'
     for pattern in patterns:
         match = re.search(pattern.replace(r'(\d+[.,]\d+)', _amt), text, re.IGNORECASE)
         if match:
@@ -111,12 +117,23 @@ def extract_all_fields(text):
 
     data = {}
 
-    # SIRET : 14 chiffres consécutifs, avec espaces optionnels entre groupes
-    siret_match = re.search(r'\b(\d{3}[\s]?\d{3}[\s]?\d{3}[\s]?\d{5})\b', text)
-    if siret_match:
-        data["siret"] = re.sub(r'\s', '', siret_match.group(1))
-    else:
-        data["siret"] = None
+    # SIRET : cherche d'abord près du mot-clé "SIRET" (accepte tout découpage OCR)
+    data["siret"] = None
+    siret_keyword = re.search(r'SIRET\s*:?\s*([\d\s]{14,20})', text, re.IGNORECASE)
+    if siret_keyword:
+        candidate = re.sub(r'\s', '', siret_keyword.group(1))
+        if len(candidate) == 14:
+            data["siret"] = candidate
+    if not data["siret"]:
+        # Fallback : groupes 3+3+3+5 avec espaces optionnels
+        siret_match = re.search(r'\b(\d{3}[\s]?\d{3}[\s]?\d{3}[\s]?\d{5})\b', text)
+        if siret_match:
+            data["siret"] = re.sub(r'\s', '', siret_match.group(1))
+    if not data["siret"]:
+        # Dernier recours : 14 chiffres consécutifs
+        siret_match = re.search(r'\b(\d{14})\b', text)
+        if siret_match:
+            data["siret"] = siret_match.group(1)
 
     # IBAN
     iban = re.search(r'\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b', text)
@@ -132,23 +149,23 @@ def extract_all_fields(text):
 
     # TTC
     data["montant_ttc"] = extract_amount_with_label([
-        r'(Total TTC)\s*(\d[\d\s\.]*[,\.]\d{2})',
-        r'(TTC)\s*(\d[\d\s\.]*[,\.]\d{2})',
-        r'(Montant TTC)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
-        r'(Net à payer)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(Total TTC)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
+        r'(TTC)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
+        r'(Montant TTC)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
+        r'(Net à payer)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
     ], text)
 
     # HT
     data["montant_ht"] = extract_amount_with_label([
-        r'(Total HT)\s*(\d[\d\s\.]*[,\.]\d{2})',
-        r'(Montant HT)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
-        r'(HT|Hors Taxe)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(Total HT)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
+        r'(Montant HT)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
+        r'(HT|Hors Taxe)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
     ], text)
 
     # TVA
     data["tva"] = extract_amount_with_label([
-        r'(TVA \d+\s*%?)\s*(\d[\d\s\.]*[,\.]\d{2})',
-        r'(TVA)[^\d]*(\d[\d\s\.]*[,\.]\d{2})',
+        r'(TVA \d+\s*%?)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
+        r'(TVA)[^\d]*(\d[\d\s\.,]*[,\.]\d{2})',
     ], text)
 
     # Dates
@@ -163,9 +180,9 @@ def extract_all_fields(text):
     if company_match:
         data["nom_entreprise"] = company_match.group(1).strip()
     else:
-        # fallback : première ligne non vide
-        lines = [l.strip() for l in text.split('\n') if l.strip()]
-        data["nom_entreprise"] = lines[0] if lines else None
+        # fallback : premiers mots significatifs (clean_text a supprimé les \n)
+        words = text.split()
+        data["nom_entreprise"] = ' '.join(words[:6]) if words else None
 
     # Keywords
     keywords = [

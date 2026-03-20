@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 def validate_documents(**context):
     """Valide les documents structurés et enrichit avec les résultats de validation."""
     ti = context["ti"]
-    structured = ti.xcom_pull(task_ids="ner_structuration")
+    # Lit depuis anomaly_detection (qui enrichit les docs NER avec le statut anomalie)
+    structured = ti.xcom_pull(task_ids="anomaly_detection")
 
     if not structured:
         logger.info("[validate] Aucun document à valider")
@@ -72,8 +73,35 @@ def validate_documents(**context):
 
         all_passed = all(r["passed"] for r in validation_results) if validation_results else True
 
+        # Intégrer le résultat de la détection d'anomalies
+        anomaly_result = sd.get("anomaly_detection", {})
+        anomaly_status = anomaly_result.get("status")  # VALID / INVALID / SUSPECT
+
+        if anomaly_status == "INVALID":
+            all_passed = False
+            checks = anomaly_result.get("checks", {})
+            if not checks.get("siret"):
+                validation_results.append({
+                    "rule": "anomaly_siret",
+                    "passed": False,
+                    "message": f"SIRET invalide selon API gouvernementale (risk={anomaly_result.get('risk_score', 0)})",
+                })
+            if not checks.get("math"):
+                validation_results.append({
+                    "rule": "anomaly_math",
+                    "passed": False,
+                    "message": "Incohérence mathématique HT/TTC détectée par le modèle",
+                })
+        elif anomaly_status == "SUSPECT":
+            all_passed = False
+            validation_results.append({
+                "rule": "anomaly_suspect",
+                "passed": False,
+                "message": f"Document suspect (risk_score={anomaly_result.get('risk_score', 0)}) — anomalie ML détectée",
+            })
+
         doc["validation_results"] = validation_results
-        doc["is_globally_valid"] = all_passed and sd["validation"].get("is_valid", False)
+        doc["is_globally_valid"] = all_passed and sd["validation"].get("is_valid", False) and anomaly_status == "VALID"
         validated.append(doc)
 
         status = "VALID" if doc["is_globally_valid"] else "INVALID"

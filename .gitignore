@@ -4,6 +4,16 @@ __pycache__/
 output/raw_zone/
 *.pdf
 *.jpg
+*.jpeg
+*.png
 
 # Airflow
 airflow/logs/
+
+# Model — checkpoints et fichiers lourds exclus (model.safetensors = 772Mo, utiliser Git LFS)
+model/checkpoint-*/
+model/model.safetensors
+
+# Dossiers de documents de test
+test_documents/
+generate_test_documents/

@@ -34,13 +34,18 @@ def populate_conformite(**context):
         anomalies = sd["validation"].get("anomalies", [])
         failed_rules = [r for r in doc.get("validation_results", []) if not r["passed"]]
 
-        is_invalid = not sd["validation"].get("is_valid", False)
+        # Prendre en compte le statut de la détection d'anomalies
+        anomaly_result = sd.get("anomaly_detection", {})
+        anomaly_status = anomaly_result.get("status")  # VALID / INVALID / SUSPECT
+
+        is_invalid = not sd["validation"].get("is_valid", False) or anomaly_status == "INVALID"
         has_multiple_anomalies = len(anomalies) > 1 or len(failed_rules) > 1
 
         if is_invalid or has_multiple_anomalies:
             niveau = "rouge"
             stats["alertes_rouges"] += 1
         else:
+            # SUSPECT → orange
             niveau = "orange"
             stats["alertes_oranges"] += 1
 
@@ -78,6 +83,9 @@ def populate_conformite(**context):
                     "anomalies": anomalies,
                     "validation_results": doc.get("validation_results", []),
                     "scenario": sd.get("scenario", ""),
+                    "anomaly_status": anomaly_status,
+                    "risk_score": anomaly_result.get("risk_score", 0),
+                    "anomaly_checks": anomaly_result.get("checks", {}),
                 },
             )
             logger.info(f"[conformite] Alerte {niveau} créée: {doc['filename']}")

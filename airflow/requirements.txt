@@ -1,6 +1,9 @@
 minio==7.2.3
 pdfplumber
 requests
+scikit-learn
+thefuzz
+RapidFuzz
 python-dotenv
 numpy<2
 opencv-python-headless

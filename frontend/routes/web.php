@@ -17,6 +17,10 @@ Route::get('/', function () {
 });
 
 // Route d'upload multi-documents
+Route::get('/upload', function () {
+    return redirect('/utilisateur/dashboard');
+});
+
 Route::post('/upload', function (Request $request) {
     $request->validate([
         'documents'   => 'required|array|min:1|max:10',
@@ -109,8 +113,8 @@ Route::prefix('utilisateur')->group(function () {
     
     // DASHBOARD COMMERCIAL DYNAMIQUE
     Route::get('/dashboard', function () {
-        // 1. Documents locaux
-        $documentsLocaux = Document::latest()->take(10)->get();
+        // 1. Documents locaux (un seul par nom de fichier : le plus récent)
+        $documentsLocaux = Document::latest()->get()->unique('nom_fichier_original')->take(10);
         
         // 2. Documents du Data Lake
         $dataLakeClient = new DataLakeClient();
@@ -123,11 +127,12 @@ Route::prefix('utilisateur')->group(function () {
             $documentsCurated = $dataLakeClient->getMockDocuments();
         }
         
-        // 3. Documents extraits par OCR (depuis la base de données)
+        // 3. Documents extraits par OCR (depuis la base de données, un par fichier)
         $documentsOCR = Extraction::with('document')
             ->latest()
-            ->take(20)
             ->get()
+            ->unique(fn($e) => $e->document->nom_fichier_original ?? $e->document_id)
+            ->take(20)
             ->map(function ($extraction) {
                 $donnees = $extraction->donnees_completes ?? [];
                 return [
@@ -190,12 +195,14 @@ Route::prefix('administrateur')->group(function () {
     
     // DASHBOARD CONFORMITÉ DYNAMIQUE
     Route::get('/dashboard', function () {
-        // 1. Documents traités : jointure Document + Extraction
+        // 1. Documents traités avec extraction (un seul par nom de fichier : le plus récent)
         $documents = Document::with(['extraction', 'fournisseur'])
             ->where('statut_ocr', 'traite')
+            ->whereHas('extraction')
             ->latest()
-            ->take(50)
-            ->get();
+            ->get()
+            ->unique('nom_fichier_original')
+            ->take(50);
 
         // 2. Alertes non résolues indexées par document_id
         $alertes = Alerte::where('resolue', false)

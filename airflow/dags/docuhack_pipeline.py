@@ -19,6 +19,7 @@ sys.path.insert(0, "/opt/airflow/backend")
 from docuhack_tasks.ingest import scan_raw_zone, ingest_documents
 from docuhack_tasks.model_extract import model_extract
 from docuhack_tasks.ner_structure import ner_structuration
+from docuhack_tasks.anomaly_detection import anomaly_detection
 from docuhack_tasks.validate import validate_documents
 from docuhack_tasks.populate_crm import populate_crm
 from docuhack_tasks.populate_conformite import populate_conformite
@@ -107,6 +108,12 @@ with DAG(
         provide_context=True,
     )
 
+    anomaly = PythonOperator(
+        task_id="anomaly_detection",
+        python_callable=anomaly_detection,
+        provide_context=True,
+    )
+
     validate = PythonOperator(
         task_id="validate_documents",
         python_callable=validate_documents,
@@ -126,4 +133,4 @@ with DAG(
     )
 
     # Chaîne de tâches
-    scan_raw >> ingest >> ocr >> model >> ner >> validate >> [crm, conformite]
+    scan_raw >> ingest >> ocr >> model >> ner >> anomaly >> validate >> [crm, conformite]
